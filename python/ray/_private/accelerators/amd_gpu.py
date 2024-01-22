@@ -3,6 +3,7 @@ import sys
 import logging
 import subprocess
 from typing import Optional, List, Tuple, Dict, Any
+from pyrsmi import rocml
 
 from ray._private.accelerators.accelerator import AcceleratorManager
 
@@ -75,11 +76,12 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
     def get_current_node_accelerator_type() -> Optional[str]:
         try:
             if sys.platform.startswith("linux"):
-                amd_pci_ids = AMDGPUAcceleratorManager._get_amd_pci_ids()
-                if amd_pci_ids is None:
+                dev_id = AMDGPUAcceleratorManager._get_amd_pci_ids()
+                if dev_id is None:
                     return None
                 return AMDGPUAcceleratorManager._gpu_name_to_accelerator_type(
-                    amd_pci_ids["card0"]["GPU ID"]
+                    # amd_pci_ids["card0"]["Device ID"]
+                    dev_id
                 )
         except Exception:
             return None
@@ -122,11 +124,14 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
         """
 
         try:
-            amd_pci_ids = subprocess.check_output(
-                ["rocm-smi", "--showid", "--json"]
-            ).decode("utf-8")
+            # amd_pci_ids = subprocess.check_output(
+            #    ["rocm-smi", "--showid", "--json"]
+            # ).decode("utf-8")
+            rocml.smi_initialize()
+            dev_id = rocml.smi_get_device_id(0)
+            rocml.smi_shutdown()
         except Exception:
             logger.exception("Could not parse gpu information.")
             return None
 
-        return eval(amd_pci_ids)
+        return hex(dev_id)
