@@ -14,12 +14,12 @@ from ray import serve
 from ray.exceptions import RayTaskError
 from ray.serve._private.common import (
     DeploymentID,
+    RequestMetadata,
     RequestProtocol,
     StreamingHTTPRequest,
     gRPCRequest,
 )
 from ray.serve._private.replica import UserCallableWrapper
-from ray.serve._private.router import RequestMetadata
 from ray.serve.generated import serve_pb2
 
 
@@ -96,7 +96,7 @@ def _make_user_callable_wrapper(
         callable if callable is not None else BasicClass,
         init_args,
         init_kwargs,
-        deployment_id=DeploymentID(app="test_app", name="test_name"),
+        deployment_id=DeploymentID(name="test_name"),
     )
 
 

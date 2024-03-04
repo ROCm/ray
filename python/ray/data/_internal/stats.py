@@ -218,6 +218,11 @@ class _StatsActor:
             description="Seconds spent in user code",
             tag_keys=iter_tag_keys,
         )
+        self.iter_initialize_s = Gauge(
+            "data_iter_initialize_seconds",
+            description="Seconds spent in iterator initialization code",
+            tag_keys=iter_tag_keys,
+        )
 
     def record_start(self, stats_uuid):
         self.start_time[stats_uuid] = time.perf_counter()
@@ -275,11 +280,9 @@ class _StatsActor:
         for stats, operator_tag in zip(op_metrics, operator_tags):
             tags = self._create_tags(dataset_tag, operator_tag)
             self.bytes_spilled.set(stats.get("obj_store_mem_spilled", 0), tags)
-            self.bytes_allocated.set(stats.get("obj_store_mem_alloc", 0), tags)
             self.bytes_freed.set(stats.get("obj_store_mem_freed", 0), tags)
-            self.bytes_current.set(stats.get("obj_store_mem_cur", 0), tags)
-            self.bytes_outputted.set(stats.get("bytes_outputs_generated", 0), tags)
-            self.rows_outputted.set(stats.get("rows_outputs_generated", 0), tags)
+            self.bytes_outputted.set(stats.get("bytes_task_outputs_generated", 0), tags)
+            self.rows_outputted.set(stats.get("rows_task_outputs_generated", 0), tags)
             self.cpu_usage.set(stats.get("cpu_usage", 0), tags)
             self.gpu_usage.set(stats.get("gpu_usage", 0), tags)
             self.block_generation_time.set(stats.get("block_generation_time", 0), tags)
@@ -296,6 +299,7 @@ class _StatsActor:
         tags = self._create_tags(dataset_tag)
         self.iter_total_blocked_s.set(stats.iter_total_blocked_s.get(), tags)
         self.iter_user_s.set(stats.iter_user_s.get(), tags)
+        self.iter_initialize_s.set(stats.iter_initialize_s.get(), tags)
 
     def clear_execution_metrics(self, dataset_tag: str, operator_tags: List[str]):
         for operator_tag in operator_tags:
@@ -314,6 +318,7 @@ class _StatsActor:
         tags = self._create_tags(dataset_tag)
         self.iter_total_blocked_s.set(0, tags)
         self.iter_user_s.set(0, tags)
+        self.iter_initialize_s.set(0, tags)
 
     def register_dataset(self, dataset_tag: str, operator_tags: List[str]):
         self.datasets[dataset_tag] = {
@@ -595,6 +600,9 @@ class DatasetStats:
         self.needs_stats_actor = needs_stats_actor
         self.stats_uuid = stats_uuid
 
+        # Streaming executor stats
+        self.streaming_exec_schedule_s: Timer = Timer()
+
         # Iteration stats, filled out if the user iterates over the dataset.
         self.iter_wait_s: Timer = Timer()
         self.iter_get_s: Timer = Timer()
@@ -604,6 +612,7 @@ class DatasetStats:
         self.iter_finalize_batch_s: Timer = Timer()
         self.iter_total_blocked_s: Timer = Timer()
         self.iter_user_s: Timer = Timer()
+        self.iter_initialize_s: Timer = Timer()
         self.iter_total_s: Timer = Timer()
         self.extra_metrics = {}
 
@@ -622,6 +631,9 @@ class DatasetStats:
         self.global_bytes_restored: int = 0
         self.dataset_bytes_spilled: int = 0
 
+        # Streaming split coordinator stats (dataset level)
+        self.streaming_split_coordinator_s: Timer = Timer()
+
     @property
     def stats_actor(self):
         return _get_or_create_stats_actor()
@@ -631,15 +643,6 @@ class DatasetStats:
     ) -> _DatasetStatsBuilder:
         """Start recording stats for an op of the given name (e.g., map)."""
         return _DatasetStatsBuilder(name, self, override_start_time)
-
-    def child_TODO(self, name: str) -> "DatasetStats":
-        """Placeholder for child ops not yet instrumented."""
-        return DatasetStats(metadata={name + "_TODO": []}, parent=self)
-
-    @staticmethod
-    def TODO():
-        """Placeholder for ops not yet instrumented."""
-        return DatasetStats(metadata={"TODO": []}, parent=None)
 
     def to_summary(self) -> "DatasetStatsSummary":
         """Generate a `DatasetStatsSummary` object from the given `DatasetStats`
@@ -675,7 +678,9 @@ class DatasetStats:
             self.iter_finalize_batch_s,
             self.iter_total_blocked_s,
             self.iter_user_s,
+            self.iter_initialize_s,
             self.iter_total_s,
+            self.streaming_split_coordinator_s,
             self.iter_blocks_local,
             self.iter_blocks_remote,
             self.iter_unknown_location,
@@ -769,7 +774,7 @@ class DatasetStatsSummary:
                 else:
                     already_printed.add(operator_uuid)
                     out += str(operators_stats_summary)
-        if self.extra_metrics:
+        if DataContext.get_current().verbose_stats_logs and self.extra_metrics:
             indent = (
                 "\t"
                 if operators_stats_summary and operators_stats_summary.is_sub_operator
@@ -869,6 +874,7 @@ class OperatorStatsSummary:
     # {"min": ..., "max": ..., "mean": ..., "sum": ...}
     wall_time: Optional[Dict[str, float]] = None
     cpu_time: Optional[Dict[str, float]] = None
+    udf_time: Optional[Dict[str, float]] = None
     # memory: no "sum" stat
     memory: Optional[Dict[str, float]] = None
     output_num_rows: Optional[Dict[str, float]] = None
@@ -936,7 +942,7 @@ class OperatorStatsSummary:
                 len(task_rows), exec_summary_str
             )
 
-        wall_time_stats = None
+        wall_time_stats, cpu_stats, memory_stats, udf_stats = None, None, None, None
         if exec_stats:
             wall_time_stats = {
                 "min": min([e.wall_time_s for e in exec_stats]),
@@ -944,9 +950,6 @@ class OperatorStatsSummary:
                 "mean": np.mean([e.wall_time_s for e in exec_stats]),
                 "sum": sum([e.wall_time_s for e in exec_stats]),
             }
-
-        cpu_stats, memory_stats = None, None
-        if exec_stats:
             cpu_stats = {
                 "min": min([e.cpu_time_s for e in exec_stats]),
                 "max": max([e.cpu_time_s for e in exec_stats]),
@@ -961,6 +964,13 @@ class OperatorStatsSummary:
                 "min": min(memory_stats_mb),
                 "max": max(memory_stats_mb),
                 "mean": int(np.mean(memory_stats_mb)),
+            }
+
+            udf_stats = {
+                "min": min([e.udf_time_s for e in exec_stats]),
+                "max": max([e.udf_time_s for e in exec_stats]),
+                "mean": np.mean([e.udf_time_s for e in exec_stats]),
+                "sum": sum([e.udf_time_s for e in exec_stats]),
             }
 
         output_num_rows_stats = None
@@ -1006,6 +1016,7 @@ class OperatorStatsSummary:
             block_execution_summary_str=exec_summary_str,
             wall_time=wall_time_stats,
             cpu_time=cpu_stats,
+            udf_time=udf_stats,
             memory=memory_stats,
             output_num_rows=output_num_rows_stats,
             output_size_bytes=output_size_bytes_stats,
@@ -1042,6 +1053,16 @@ class OperatorStatsSummary:
                 fmt(cpu_stats["max"]),
                 fmt(cpu_stats["mean"]),
                 fmt(cpu_stats["sum"]),
+            )
+
+        udf_stats = self.udf_time
+        if udf_stats:
+            out += indent
+            out += "* UDF time: {} min, {} max, {} mean, {} total\n".format(
+                fmt(udf_stats["min"]),
+                fmt(udf_stats["max"]),
+                fmt(udf_stats["mean"]),
+                fmt(udf_stats["sum"]),
             )
 
         memory_stats = self.memory
@@ -1157,8 +1178,11 @@ class IterStatsSummary:
     block_time: Timer
     # Time spent in user code, in seconds
     user_time: Timer
+    initialize_time: Timer
     # Total time taken by Dataset iterator, in seconds
     total_time: Timer
+    # Time spent in streaming split coordinator
+    streaming_split_coord_time: Timer
     # Num of blocks that are in local object store
     iter_blocks_local: int
     # Num of blocks that are in remote node and have to fetch locally
@@ -1181,21 +1205,22 @@ class IterStatsSummary:
             or self.finalize_batch_time.get()
         ):
             out += "\nDataset iterator time breakdown:\n"
-            if self.block_time.get():
-                out += "* Total time user code is blocked: {}\n".format(
-                    fmt(self.block_time.get())
-                )
-            if self.user_time.get():
-                out += "* Total time in user code: {}\n".format(
-                    fmt(self.user_time.get())
-                )
             if self.total_time.get():
                 out += "* Total time overall: {}\n".format(fmt(self.total_time.get()))
-            out += "* Num blocks local: {}\n".format(self.iter_blocks_local)
-            out += "* Num blocks remote: {}\n".format(self.iter_blocks_remote)
-            out += "* Num blocks unknown location: {}\n".format(
-                self.iter_unknown_location
-            )
+            if self.initialize_time.get():
+                out += (
+                    "    * Total time in Ray Data iterator initialization code: "
+                    "{}\n".format(fmt(self.initialize_time.get()))
+                )
+            if self.block_time.get():
+                out += (
+                    "    * Total time user thread is blocked by Ray Data iter_batches: "
+                    "{}\n".format(fmt(self.block_time.get()))
+                )
+            if self.user_time.get():
+                out += "    * Total execution time for user thread: {}\n".format(
+                    fmt(self.user_time.get())
+                )
             out += (
                 "* Batch iteration time breakdown (summed across prefetch threads):\n"
             )
@@ -1235,7 +1260,7 @@ class IterStatsSummary:
                 )
             if self.finalize_batch_time.get():
                 format_str = (
-                    "   * In host->device transfer: {} min, {} max, {} avg, {} total\n"
+                    "    * In host->device transfer: {} min, {} max, {} avg, {} total\n"
                 )
                 out += format_str.format(
                     fmt(self.finalize_batch_time.min()),
@@ -1243,6 +1268,16 @@ class IterStatsSummary:
                     fmt(self.finalize_batch_time.avg()),
                     fmt(self.finalize_batch_time.get()),
                 )
+            if DataContext.get_current().enable_get_object_locations_for_metrics:
+                out += "Block locations:\n"
+                out += "    * Num blocks local: {}\n".format(self.iter_blocks_local)
+                out += "    * Num blocks remote: {}\n".format(self.iter_blocks_remote)
+                out += "    * Num blocks unknown location: {}\n".format(
+                    self.iter_unknown_location
+                )
+            if self.streaming_split_coord_time.get() != 0:
+                out += "Streaming split coordinator overhead time: "
+                out += f"{fmt(self.streaming_split_coord_time.get())}\n"
 
         return out
 

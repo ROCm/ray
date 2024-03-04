@@ -12,8 +12,8 @@ from ray.serve._private.constants import (
     PUSH_MULTIPLEXED_MODEL_IDS_INTERVAL_S,
     SERVE_LOGGER_NAME,
 )
+from ray.serve._private.metrics_utils import MetricsPusher
 from ray.serve._private.usage import ServeUsageTag
-from ray.serve._private.utils import MetricsPusher
 from ray.serve.context import _get_global_client, _get_internal_replica_context
 
 logger = logging.getLogger(SERVE_LOGGER_NAME)
@@ -33,6 +33,8 @@ class _ModelMultiplexWrapper:
     model's __del__ attribute if it exists to clean up the model resources eagerly.
 
     """
+
+    _PUSH_MULTIPLEXED_MODEL_IDS_TASK_NAME = "push_multiplexed_model_ids"
 
     def __init__(
         self,
@@ -111,7 +113,8 @@ class _ModelMultiplexWrapper:
         self._model_load_tasks: Set[str] = set()
 
         self.metrics_pusher = MetricsPusher()
-        self.metrics_pusher.register_task(
+        self.metrics_pusher.register_or_update_task(
+            self._PUSH_MULTIPLEXED_MODEL_IDS_TASK_NAME,
             self._push_model_ids_info,
             PUSH_MULTIPLEXED_MODEL_IDS_INTERVAL_S,
         )
@@ -137,7 +140,9 @@ class _ModelMultiplexWrapper:
             if self._push_multiplexed_replica_info:
                 _get_global_client().record_multiplexed_replica_info(
                     MultiplexedReplicaInfo(
-                        DeploymentID(self._deployment_name, self._app_name),
+                        DeploymentID(
+                            name=self._deployment_name, app_name=self._app_name
+                        ),
                         self._replica_tag,
                         self._get_loading_and_loaded_model_ids(),
                     )
@@ -216,14 +221,13 @@ class _ModelMultiplexWrapper:
                         self.models[model_id] = await self._func(
                             self.self_arg, model_id
                         )
-                    loaded_time = time.time() - load_start_time
+                    load_latency_ms = (time.time() - load_start_time) * 1000.0
                     logger.info(
-                        f"Successfully loaded model '{model_id}' in {loaded_time}s."
+                        f"Successfully loaded model '{model_id}' in "
+                        f"{load_latency_ms:.1f}ms."
                     )
                     self._model_load_tasks.discard(model_id)
-                    self.model_load_latency_ms.observe(
-                        (time.time() - load_start_time) * 1000.0
-                    )
+                    self.model_load_latency_ms.observe(load_latency_ms)
                     return self.models[model_id]
                 except Exception as e:
                     logger.error(
@@ -248,7 +252,9 @@ class _ModelMultiplexWrapper:
             else:
                 await model.__del__()
             setattr(model, "__del__", lambda _: None)
-        unloaded_time = time.time() - unload_start_time
-        self.model_unload_latency_ms.observe(unloaded_time * 1000.0)
-        logger.info(f"Successfully unloaded model '{model_id}' in {unloaded_time}s.")
+        unload_latency_ms = (time.time() - unload_start_time) * 1000.0
+        self.model_unload_latency_ms.observe(unload_latency_ms)
+        logger.info(
+            f"Successfully unloaded model '{model_id}' in {unload_latency_ms:.1f}ms."
+        )
         self.registered_model_gauge.set(0, tags={"model_id": model_id})

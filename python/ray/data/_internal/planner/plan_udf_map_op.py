@@ -82,7 +82,7 @@ def plan_udf_map_op(
         name=op.name,
         target_max_block_size=None,
         compute_strategy=compute,
-        min_rows_per_bundle=op._min_rows_per_block,
+        min_rows_per_bundle=op._min_rows_per_bundled_input,
         ray_remote_args=op._ray_remote_args,
     )
 
@@ -279,7 +279,7 @@ def _create_map_transformer_for_map_batches_op(
             zero_copy_batch=zero_copy_batch,
         ),
         # Apply the UDF.
-        BatchMapTransformFn(batch_fn),
+        BatchMapTransformFn(batch_fn, is_udf=True),
         # Convert output batches to blocks.
         BuildOutputBlocksMapTransformFn.for_batches(),
     ]
@@ -296,7 +296,7 @@ def _create_map_transformer_for_row_based_map_op(
         # Convert input blocks to rows.
         BlocksToRowsMapTransformFn.instance(),
         # Apply the UDF.
-        RowMapTransformFn(row_fn),
+        RowMapTransformFn(row_fn, is_udf=True),
         # Convert output rows to blocks.
         BuildOutputBlocksMapTransformFn.for_rows(),
     ]

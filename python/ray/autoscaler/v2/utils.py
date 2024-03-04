@@ -1,8 +1,9 @@
 from collections import Counter, defaultdict
 from copy import deepcopy
 from datetime import datetime
+from enum import Enum
 from itertools import chain
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import ray
 from ray._private.ray_constants import AUTOSCALER_NAMESPACE, AUTOSCALER_V2_ENABLED_KEY
@@ -30,17 +31,19 @@ from ray.autoscaler.v2.schema import (
     Stats,
 )
 from ray.core.generated.autoscaler_pb2 import (
+    AffinityConstraint,
+    AntiAffinityConstraint,
     AutoscalingState,
     ClusterResourceState,
     GetClusterStatusReply,
     NodeState,
     NodeStatus,
+    PlacementConstraint,
     ResourceRequest,
 )
 from ray.core.generated.autoscaler_pb2 import (
     ResourceRequestByCount as ResourceRequestByCountProto,
 )
-from ray.core.generated.instance_manager_pb2 import Instance
 from ray.experimental.internal_kv import _internal_kv_get, _internal_kv_initialized
 
 
@@ -60,29 +63,215 @@ def _count_by(data: Any, key: str) -> Dict[str, int]:
     return counts
 
 
-# TODO: unify the ClusterStatus to use proto definitions directly.
-def resource_requests_by_count(
-    requests: List[ResourceRequest],
-) -> List[ResourceRequestByCountProto]:
+class ProtobufUtil:
     """
-    Aggregate resource requests by shape.
-    Args:
-        requests: the list of resource requests
-    Returns:
-        resource_requests_by_count: the aggregated resource requests by count
+    A utility class for protobuf objects.
     """
-    resource_requests_by_count = defaultdict(int)
-    for request in requests:
-        serialized_request = request.SerializeToString()
-        resource_requests_by_count[serialized_request] += 1
 
-    results = []
-    for serialized_request, count in resource_requests_by_count.items():
+    @staticmethod
+    def to_dict(proto):
+        """
+        Convert a protobuf object to a dict.
+
+        This is a slow conversion, and should only be used for debugging or
+        latency insensitve code.
+
+        Args:
+            proto: the protobuf object
+        Returns:
+            dict: the dict
+        """
+        from ray._private.protobuf_compat import message_to_dict
+
+        return message_to_dict(
+            proto,
+            preserving_proto_field_name=True,
+            always_print_fields_with_no_presence=True,
+        )
+
+    @staticmethod
+    def to_dict_list(protos):
+        """
+        Convert a list of protobuf objects to a list of dicts.
+
+        Args:
+            protos: the list of protobuf objects
+        Returns:
+            dict_list: the list of dicts
+        """
+        return [ProtobufUtil.to_dict(proto) for proto in protos]
+
+
+class ResourceRequestUtil(ProtobufUtil):
+    """
+    A utility class for resource requests, autoscaler.proto.ResourceRequest
+    """
+
+    class PlacementConstraintType(Enum):
+        """
+        The affinity type for the resource request.
+        """
+
+        ANTI_AFFINITY = "ANTI_AFFINITY"
+        AFFINITY = "AFFINITY"
+
+    @staticmethod
+    def group_by_count(
+        requests: List[ResourceRequest],
+    ) -> List[ResourceRequestByCountProto]:
+        """
+        Aggregate resource requests by shape.
+        Args:
+            requests: the list of resource requests
+        Returns:
+            resource_requests_by_count: the aggregated resource requests by count
+        """
+        resource_requests_by_count = defaultdict(int)
+        for request in requests:
+            serialized_request = request.SerializeToString()
+            resource_requests_by_count[serialized_request] += 1
+
+        results = []
+        for serialized_request, count in resource_requests_by_count.items():
+            request = ResourceRequest()
+            request.ParseFromString(serialized_request)
+            results.append(ResourceRequestByCountProto(request=request, count=count))
+
+        return results
+
+    @staticmethod
+    def ungroup_by_count(
+        requests_by_count: List[ResourceRequestByCountProto],
+    ) -> List[ResourceRequest]:
+        """
+        Flatten the resource requests by count to resource requests.
+        Args:
+            requests_by_count: the resource requests by count
+        Returns:
+            requests: the flattened resource requests
+        """
+        reqs = []
+        for r in requests_by_count:
+            reqs += [r.request] * r.count
+
+        return reqs
+
+    @staticmethod
+    def make(
+        resources_map: Dict[str, float],
+        constraints: Optional[List[Tuple[PlacementConstraintType, str, str]]] = None,
+    ) -> ResourceRequest:
+        """
+        Make a resource request from the given resources map.
+        Args:
+            resources_map: the resources map
+        Returns:
+            request: the resource request
+        """
         request = ResourceRequest()
-        request.ParseFromString(serialized_request)
-        results.append(ResourceRequestByCountProto(request=request, count=count))
+        for resource_name, quantity in resources_map.items():
+            request.resources_bundle[resource_name] = quantity
 
-    return results
+        if constraints is None:
+            return request
+
+        for constraint_type, label, value in constraints:
+            if constraint_type == ResourceRequestUtil.PlacementConstraintType.AFFINITY:
+                request.placement_constraints.append(
+                    PlacementConstraint(
+                        affinity=AffinityConstraint(label_name=label, label_value=value)
+                    )
+                )
+            elif (
+                constraint_type
+                == ResourceRequestUtil.PlacementConstraintType.ANTI_AFFINITY
+            ):
+                request.placement_constraints.append(
+                    PlacementConstraint(
+                        anti_affinity=AntiAffinityConstraint(
+                            label_name=label, label_value=value
+                        )
+                    )
+                )
+            else:
+                raise ValueError(f"Unknown constraint type: {constraint_type}")
+
+        return request
+
+    @staticmethod
+    def combine_requests_with_affinity(
+        resource_requests: List[ResourceRequest],
+    ) -> List[ResourceRequest]:
+        """
+        Combine the resource requests with affinity constraints
+        into the same request. This is so that requests with affinity
+         constraints could be considered and placed together.
+
+        It merges the resource requests with the same affinity constraints
+        into one request, and dedup the placement constraints.
+
+        This assumes following:
+            1. There's only at most 1 placement constraint, either an affinity
+            constraint OR an anti-affinity constraint.
+
+        Args:
+            resource_requests: The list of resource requests to be combined.
+        Returns:
+            A list of combined resource requests.
+        """
+
+        # Map of set of serialized affinity constraint to the list of resource requests
+        requests_by_affinity: Dict[
+            Tuple[str, str], List[ResourceRequest]
+        ] = defaultdict(list)
+        combined_requests: List[ResourceRequest] = []
+
+        for request in resource_requests:
+            assert len(request.placement_constraints) <= 1, (
+                "There should be at most 1 placement constraint, "
+                "either an affinity constraint OR an anti-affinity constraint."
+            )
+
+            if len(request.placement_constraints) == 0:
+                # No affinity constraints, just add to the combined requests.
+                combined_requests.append(request)
+                continue
+
+            constraint = request.placement_constraints[0]
+
+            if constraint.HasField("affinity"):
+                affinity = constraint.affinity
+                requests_by_affinity[
+                    (affinity.label_name, affinity.label_value)
+                ].append(request)
+            elif constraint.HasField("anti_affinity"):
+                # We don't need to combine requests with anti-affinity constraints.
+                combined_requests.append(request)
+
+        for (
+            affinity_label_name,
+            affinity_label_value,
+        ), requests in requests_by_affinity.items():
+            combined_request = ResourceRequest()
+
+            # Merge the resource bundles with the same affinity constraint.
+            for request in requests:
+                for k, v in request.resources_bundle.items():
+                    combined_request.resources_bundle[k] = (
+                        combined_request.resources_bundle.get(k, 0) + v
+                    )
+
+            # Add the placement constraint to the combined request.
+            affinity_constraint = AffinityConstraint(
+                label_name=affinity_label_name, label_value=affinity_label_value
+            )
+            combined_request.placement_constraints.append(
+                PlacementConstraint(affinity=affinity_constraint)
+            )
+
+            combined_requests.append(combined_request)
+
+        return combined_requests
 
 
 class ClusterStatusFormatter:
@@ -605,12 +794,3 @@ def is_autoscaler_v2() -> bool:
     )
 
     return cached_is_autoscaler_v2
-
-
-# TODO: use InstanceUtil after it's merged.
-def is_pending(instance: Instance) -> bool:
-    return instance.status in [
-        Instance.REQUESTED,
-        Instance.QUEUED,
-        Instance.UNKNOWN,
-    ]
