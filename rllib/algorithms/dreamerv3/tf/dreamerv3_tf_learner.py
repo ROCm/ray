@@ -158,7 +158,7 @@ class DreamerV3TfLearner(DreamerV3Learner, TfLearner):
                     # Take individual loss term from the registered metrics for
                     # the main module.
                     self.metrics.peek(
-                        (DEFAULT_MODULE_ID, component.upper() + "_L_total")
+                        DEFAULT_MODULE_ID, component.upper() + "_L_total"
                     ),
                     self.filter_param_dict_for_optimizer(
                         self._params, self.get_optimizer(optimizer_name=component)
@@ -284,12 +284,13 @@ class DreamerV3TfLearner(DreamerV3Learner, TfLearner):
             self.metrics.log_dict(
                 {
                     # Replace 'T' with '1'.
-                    key[:-1] + "1": value[:, :: config.batch_length_T]
+                    f"DREAM_DATA_{key[:-1]}1": (
+                        value[:, config.batch_size_B_per_learner]
+                    )
                     for key, value in dream_data.items()
                     if key.endswith("H_BxT")
                 },
-                key=(module_id, "dream_data"),
-                reduce=None,
+                key=module_id,
                 window=1,  # <- single items (should not be mean/ema-reduced over time).
             )
 

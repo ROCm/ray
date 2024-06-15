@@ -1,6 +1,6 @@
 import collections
 from types import GeneratorType
-from typing import Any, Callable, Iterable, Iterator, List, Optional
+from typing import Any, Callable, Iterable, Iterator, Optional
 
 import numpy as np
 import pandas as pd
@@ -44,15 +44,13 @@ from ray.util.rpdb import _is_ray_debugger_enabled
 
 
 def plan_udf_map_op(
-    op: AbstractUDFMap, physical_children: List[PhysicalOperator]
+    op: AbstractUDFMap, input_physical_dag: PhysicalOperator
 ) -> MapOperator:
     """Get the corresponding physical operators DAG for AbstractUDFMap operators.
 
     Note this method only converts the given `op`, but not its input dependencies.
     See Planner.plan() for more details.
     """
-    assert len(physical_children) == 1
-    input_physical_dag = physical_children[0]
 
     compute = get_compute(op._compute)
     fn, init_fn = _parse_op_fn(op)

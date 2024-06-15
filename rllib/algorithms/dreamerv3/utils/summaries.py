@@ -30,7 +30,6 @@ def reconstruct_obs_from_h_and_z(
     z_t0_to_H,
     dreamer_model,
     obs_dims_shape,
-    framework="torch",
 ):
     """Returns"""
     shape = h_t0_to_H.shape
@@ -40,27 +39,19 @@ def reconstruct_obs_from_h_and_z(
     # Note that the last h-state (T+1) is NOT used here as it's already part of
     # a new trajectory.
     # Use mean() of the Gaussian, no sample! -> No need to construct dist object here.
-    if framework == "torch":
-        device = next(iter(dreamer_model.world_model.decoder.parameters())).device
-        reconstructed_obs_distr_means_TxB = (
-            dreamer_model.world_model.decoder(
-                # Fold time rank.
-                h=torch.from_numpy(h_t0_to_H).reshape((T * B, -1)).to(device),
-                z=torch.from_numpy(z_t0_to_H)
-                .reshape((T * B,) + z_t0_to_H.shape[2:])
-                .to(device),
-            )
-            .detach()
-            .cpu()
-            .numpy()
-        )
-    else:
-        reconstructed_obs_distr_means_TxB = dreamer_model.world_model.decoder(
+    device = next(iter(dreamer_model.world_model.decoder.parameters())).device
+    reconstructed_obs_distr_means_TxB = (
+        dreamer_model.world_model.decoder(
             # Fold time rank.
-            h=h_t0_to_H.reshape((T * B, -1)),
-            z=z_t0_to_H.reshape((T * B,) + z_t0_to_H.shape[2:]),
+            h=torch.from_numpy(h_t0_to_H).reshape((T * B, -1)).to(device),
+            z=torch.from_numpy(z_t0_to_H)
+            .reshape((T * B,) + z_t0_to_H.shape[2:])
+            .to(device),
         )
-
+        .detach()
+        .cpu()
+        .numpy()
+    )
     # Unfold time rank again.
     reconstructed_obs_T_B = np.reshape(
         reconstructed_obs_distr_means_TxB, (T, B) + obs_dims_shape
@@ -78,7 +69,6 @@ def report_dreamed_trajectory(
     batch_indices=(0,),
     desc=None,
     include_images=True,
-    framework="torch",
 ):
     if not include_images:
         return
@@ -89,7 +79,6 @@ def report_dreamed_trajectory(
         z_t0_to_H=dream_data["z_states_prior_t0_to_H_BxT"],
         dreamer_model=dreamer_model,
         obs_dims_shape=obs_dims_shape,
-        framework=framework,
     )
     func = (
         create_cartpole_dream_image
@@ -205,7 +194,6 @@ def report_dreamed_eval_trajectory_vs_samples(
     dreamer_model,
     symlog_obs: bool = True,
     do_report: bool = True,
-    framework="torch",
 ) -> None:
     """Logs dreamed observations, rewards, continues and compares them vs sampled data.
 
@@ -229,7 +217,9 @@ def report_dreamed_eval_trajectory_vs_samples(
             the report/videos.
     """
     dream_data = metrics.peek(
-        (LEARNER_RESULTS, DEFAULT_MODULE_ID, "dream_data"),
+        LEARNER_RESULTS,
+        DEFAULT_MODULE_ID,
+        "dream_data",
         default={},
     )
     metrics.delete(LEARNER_RESULTS, DEFAULT_MODULE_ID, "dream_data", key_error=False)
@@ -249,11 +239,10 @@ def report_dreamed_eval_trajectory_vs_samples(
 
     # Obs MSE.
     dreamed_obs_H_B = reconstruct_obs_from_h_and_z(
-        h_t0_to_H=dream_data["h_states_t0_to_H_Bx1"][0],  # [0] b/c reduce=None (list)
+        h_t0_to_H=dream_data["h_states_t0_to_H_Bx1"][0],
         z_t0_to_H=dream_data["z_states_prior_t0_to_H_Bx1"][0],
         dreamer_model=dreamer_model,
         obs_dims_shape=sample[Columns.OBS].shape[2:],
-        framework=framework,
     )
     t0 = burn_in_T
     tH = t0 + dreamed_T

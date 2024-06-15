@@ -46,15 +46,12 @@ def cleaned_metadata(read_task: ReadTask):
     return block_meta
 
 
-def plan_read_op(
-    op: Read, physical_children: List[PhysicalOperator]
-) -> PhysicalOperator:
+def plan_read_op(op: Read) -> PhysicalOperator:
     """Get the corresponding DAG of physical operators for Read.
 
     Note this method only converts the given `op`, but not its input dependencies.
     See Planner.plan() for more details.
     """
-    assert len(physical_children) == 0
 
     def get_input_data(target_max_block_size) -> List[RefBundle]:
         parallelism = op.get_detected_parallelism()

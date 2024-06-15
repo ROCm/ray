@@ -76,13 +76,6 @@
                 "description": "Specifies the priority for the virtual machine."
             }
         },
-        "evictionPolicy": {
-            "type": "string",
-            "defaultValue": "Delete",
-            "metadata": {
-                "description": "Specifies the eviction policy for the virtual machine."
-            }
-        },
         "billingProfile": {
             "type": "object",
             "defaultValue": {},
@@ -253,7 +246,6 @@
                     }
                 },
                 "priority": "[parameters('priority')]",
-                "evictionPolicy": "[parameters('evictionPolicy')]",
                 "billingProfile": "[parameters('billingProfile')]"
             },
             "identity": {
