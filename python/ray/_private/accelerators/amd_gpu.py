@@ -2,31 +2,13 @@ import os
 import logging
 from typing import Optional, List, Tuple
 
-import ray._private.ray_constants as ray_constants
+from ray._private.accelerators.nvidia_gpu import CUDA_VISIBLE_DEVICES_ENV_VAR
 from ray._private.accelerators.accelerator import AcceleratorManager
 
 logger = logging.getLogger(__name__)
 
 HIP_VISIBLE_DEVICES_ENV_VAR = "HIP_VISIBLE_DEVICES"
 NOSET_HIP_VISIBLE_DEVICES_ENV_VAR = "RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES"
-
-if "ROCR_VISIBLE_DEVICES" in os.environ:
-    raise RuntimeError(
-        f"Please use {HIP_VISIBLE_DEVICES_ENV_VAR} instead of ROCR_VISIBLE_DEVICES"
-    )
-
-if HIP_VISIBLE_DEVICES_ENV_VAR in os.environ:
-    hip_val = os.environ[HIP_VISIBLE_DEVICES_ENV_VAR]
-    if cuda_val := os.environ.get(ray_constants.CUDA_VISIBLE_DEVICES_ENV_VAR, None):
-        logger.warning(
-            "WARNING: {}: {} and {}: {} must be equal.".format(
-                ray_constants.CUDA_VISIBLE_DEVICES_ENV_VAR,
-                cuda_val,
-                HIP_VISIBLE_DEVICES_ENV_VAR,
-                hip_val,
-            )
-        )
-
 
 amd_product_dict = {
     "0x738c": "AMD-Instinct-MI100",
@@ -54,6 +36,22 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
 
     @staticmethod
     def get_current_process_visible_accelerator_ids() -> Optional[List[str]]:
+        if "ROCR_VISIBLE_DEVICES" in os.environ:
+            raise RuntimeError(
+                f"lala Please use {HIP_VISIBLE_DEVICES_ENV_VAR} instead of ROCR_VISIBLE_DEVICES"
+            )
+
+        hip_val = os.environ.get(HIP_VISIBLE_DEVICES_ENV_VAR, None)
+        if cuda_val := os.environ.get(CUDA_VISIBLE_DEVICES_ENV_VAR, None):
+            logger.warning(
+                "WARNING: {}: {} and {}: {} must be equal.".format(
+                    CUDA_VISIBLE_DEVICES_ENV_VAR,
+                    cuda_val,
+                    HIP_VISIBLE_DEVICES_ENV_VAR,
+                    hip_val,
+                )
+            )
+
         amd_visible_devices = os.environ.get(
             AMDGPUAcceleratorManager.get_visible_accelerator_ids_env_var(), None
         )
