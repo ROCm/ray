@@ -38,19 +38,12 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
     def get_current_process_visible_accelerator_ids() -> Optional[List[str]]:
         if "ROCR_VISIBLE_DEVICES" in os.environ:
             raise RuntimeError(
-                f"lala Please use {HIP_VISIBLE_DEVICES_ENV_VAR} instead of ROCR_VISIBLE_DEVICES"
+                f"Please use {HIP_VISIBLE_DEVICES_ENV_VAR} instead of ROCR_VISIBLE_DEVICES"
             )
 
         hip_val = os.environ.get(HIP_VISIBLE_DEVICES_ENV_VAR, None)
         if cuda_val := os.environ.get(CUDA_VISIBLE_DEVICES_ENV_VAR, None):
-            logger.warning(
-                "WARNING: {}: {} and {}: {} must be equal.".format(
-                    CUDA_VISIBLE_DEVICES_ENV_VAR,
-                    cuda_val,
-                    HIP_VISIBLE_DEVICES_ENV_VAR,
-                    hip_val,
-                )
-            )
+            assert hip_val == cuda_val
 
         amd_visible_devices = os.environ.get(
             AMDGPUAcceleratorManager.get_visible_accelerator_ids_env_var(), None
