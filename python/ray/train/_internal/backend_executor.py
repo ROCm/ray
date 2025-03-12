@@ -133,7 +133,7 @@ class BackendExecutor:
             ResourceConfig(
                 ray_constants.GPU,
                 ENABLE_SHARE_ROCR_VISIBLE_DEVICES_ENV,
-                ROCR_VISIBLE_DEVICES_ENV_VAR,
+                HIP_VISIBLE_DEVICES_ENV_VAR,
             ),
         ]
 
