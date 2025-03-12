@@ -132,8 +132,8 @@ class BackendExecutor:
             # For AMD GPUs, they are using HIP_VISIBLE_DEVICES env var.
             ResourceConfig(
                 ray_constants.GPU,
-                ENABLE_SHARE_HIP_VISIBLE_DEVICES_ENV,
-                ray_constants.HIP_VISIBLE_DEVICES_ENV_VAR,
+                ENABLE_SHARE_ROCR_VISIBLE_DEVICES_ENV,
+                ROCR_VISIBLE_DEVICES_ENV_VAR,
             ),
         ]
 

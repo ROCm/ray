@@ -422,13 +422,11 @@ KV_NAMESPACE_FUNCTION_TABLE = b"fun"
 
 LANGUAGE_WORKER_TYPES = ["python", "java", "cpp"]
 
-
 NEURON_CORES = "neuron_cores"
 GPU = "GPU"
 TPU = "TPU"
 NPU = "NPU"
 HPU = "HPU"
-
 
 RAY_WORKER_NICENESS = "RAY_worker_niceness"
 
