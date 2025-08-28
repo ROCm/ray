@@ -1,4 +1,4 @@
-#AMD Valiation Note
+#AMD Validation Note
 
 Python tests are validated on single MI210 and MI300x machines. The full suite of tests is too large to run on a single machine (See https://docs.ray.io/en/latest/ray-contribute/getting-involved.html#testing-for-python-development). Individual relevant Python test files. Validated tests on MI210 and MI300x are listed below.
 
