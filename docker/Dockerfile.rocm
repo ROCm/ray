@@ -1,7 +1,8 @@
 ARG BASE_IMAGE=rocm/vllm:rocm7.0.0_vllm_0.11.1_20251103
 FROM ${BASE_IMAGE}
 
-ARG RAY_WHEEL_PATH=ray
+#latest nightly wheels
+ARG RAY_WHEEL_PATH=" @ https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-3.0.0.dev0-cp312-cp312-manylinux2014_x86_64.whl"
 
 # Switch to bash shell for all RUN commands
 SHELL ["/bin/bash", "-c"]
@@ -9,6 +10,6 @@ SHELL ["/bin/bash", "-c"]
 # System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential python3-dev amd-smi-lib && rm -rf /var/lib/apt/lists/*
 
-RUN pip install -U "${RAY_WHEEL_PATH}"
-
+#RUN pip install -U "${RAY_WHEEL_PATH}"
+RUN pip uninstall -y ray && pip install -U "ray[all]${RAY_WHEEL_PATH}"
 
