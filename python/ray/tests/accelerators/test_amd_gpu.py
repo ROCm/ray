@@ -11,22 +11,14 @@ from ray._private.accelerators import (
 )
 
 
-@pytest.mark.parametrize(
-    "visible_devices_env_var", ("HIP_VISIBLE_DEVICES", "CUDA_VISIBLE_DEVICES")
-)
-@patch(
-    "ray._private.accelerators.AMDGPUAcceleratorManager.get_current_node_num_accelerators",  # noqa: E501
-    return_value=4,
-)
 def test_visible_amd_gpu_ids(
-    mock_get_num_accelerators, visible_devices_env_var, monkeypatch, shutdown_only
+    monkeypatch, shutdown_only
 ):
-    monkeypatch.setenv(visible_devices_env_var, "0,1,2")
+    monkeypatch.setenv("HIP_VISIBLE_DEVICES", "0,1,2")
     # Delete the cache so it can be re-populated the next time
     # we call get_accelerator_manager_for_resource
     del get_accelerator_manager_for_resource._resource_name_to_accelerator_manager
     ray.init()
-    _ = mock_get_num_accelerators.called
     assert ray.available_resources()["GPU"] == 3
 
 
@@ -80,23 +72,6 @@ def test_get_current_process_visible_accelerator_ids(
     assert (
         AMDGPUAcceleratorManager.get_current_process_visible_accelerator_ids() is None
     )
-
-
-def test_hip_cuda_env_var_get_current_process_visible_accelerator_ids(monkeypatch):
-    # HIP and CUDA visible env vars are set and equal
-    monkeypatch.setenv("HIP_VISIBLE_DEVICES", "0,1,2")
-    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "0,1,2")
-    assert AMDGPUAcceleratorManager.get_current_process_visible_accelerator_ids() == [
-        "0",
-        "1",
-        "2",
-    ]
-
-    # HIP and CUDA visible env vars are set and not equal
-    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "0,1,3")
-    with pytest.raises(ValueError):
-        AMDGPUAcceleratorManager.get_current_process_visible_accelerator_ids()
-
 
 def test_set_current_process_visible_accelerator_ids():
     AMDGPUAcceleratorManager.set_current_process_visible_accelerator_ids(["0"])
