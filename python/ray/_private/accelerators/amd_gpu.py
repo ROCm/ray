@@ -49,6 +49,13 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
             )
 
         env_var = HIP_VISIBLE_DEVICES_ENV_VAR
+        if (cuda_val := os.environ.get(CUDA_VISIBLE_DEVICES_ENV_VAR, None)) is not None:
+            if (hip_val := os.environ.get(HIP_VISIBLE_DEVICES_ENV_VAR, None)) is None:
+                env_var = CUDA_VISIBLE_DEVICES_ENV_VAR
+            elif hip_val != cuda_val:
+                raise ValueError(
+                    f"Inconsistent values found. Please use either {HIP_VISIBLE_DEVICES_ENV_VAR} or {CUDA_VISIBLE_DEVICES_ENV_VAR}."
+                )
 
         return env_var
 
@@ -59,11 +66,7 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
         )
 
         if amd_visible_devices is None:
-            amd_visible_devices = os.environ.get(
-            "CUDA_VISIBLE_DEVICES", None
-        )
-            if amd_visible_devices is None:
-                return None
+            return None
 
         if amd_visible_devices == "":
             return []
@@ -128,16 +131,6 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
         os.environ[
             AMDGPUAcceleratorManager.get_visible_accelerator_ids_env_var()
         ] = ",".join([str(i) for i in visible_amd_devices])
-
-        # This removes the need for RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES
-        # on ROCm platforms
-        # Some frameworks exclusively use CUDA_VISIBLE_DEVICES in their 
-        # distributed processes. CUDA_VISIBLE_DEVICES has the same effect as 
-        # HIP_VISIBLE_DEVICES on the AMD platform.
-        os.environ[
-            CUDA_VISIBLE_DEVICES_ENV_VAR
-        ] = ",".join([str(i) for i in visible_amd_devices])
-
 
     @staticmethod
     def _get_amd_device_ids() -> List[str]:
