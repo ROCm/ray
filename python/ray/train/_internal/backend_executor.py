@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypeVar
 
 import ray
 import ray._private.ray_constants as ray_constants
-from ray._private.accelerators.amd_gpu import HIP_VISIBLE_DEVICES_ENV_VAR
+from ray._private.accelerators.amd_gpu import ROCR_VISIBLE_DEVICES_ENV_VAR
 from ray._private.accelerators.neuron import NEURON_RT_VISIBLE_CORES_ENV_VAR
 from ray._private.accelerators.npu import ASCEND_RT_VISIBLE_DEVICES_ENV_VAR
 from ray._private.accelerators.nvidia_gpu import CUDA_VISIBLE_DEVICES_ENV_VAR
@@ -29,7 +29,7 @@ from ray.train.backend import BackendConfig
 from ray.train.constants import (
     ENABLE_DETAILED_AUTOFILLED_METRICS_ENV,
     ENABLE_SHARE_CUDA_VISIBLE_DEVICES_ENV,
-    ENABLE_SHARE_HIP_VISIBLE_DEVICES_ENV,
+    ENABLE_SHARE_ROCR_VISIBLE_DEVICES_ENV,
     ENABLE_SHARE_NEURON_CORES_ACCELERATOR_ENV,
     ENABLE_SHARE_NPU_RT_VISIBLE_DEVICES_ENV,
     RAY_TRAIN_ENABLE_STATE_TRACKING,
@@ -129,11 +129,11 @@ class BackendExecutor:
                 ENABLE_SHARE_NPU_RT_VISIBLE_DEVICES_ENV,
                 ASCEND_RT_VISIBLE_DEVICES_ENV_VAR,
             ),
-            # For AMD GPUs, they are using HIP_VISIBLE_DEVICES env var.
+            # For AMD GPUs, they are using ROCR_VISIBLE_DEVICES env var.
             ResourceConfig(
                 ray_constants.GPU,
-                ENABLE_SHARE_HIP_VISIBLE_DEVICES_ENV,
-                HIP_VISIBLE_DEVICES_ENV_VAR,
+                ENABLE_SHARE_ROCR_VISIBLE_DEVICES_ENV,
+                ROCR_VISIBLE_DEVICES_ENV_VAR,
             ),
         ]
 

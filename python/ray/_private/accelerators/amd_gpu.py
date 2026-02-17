@@ -7,8 +7,8 @@ from ray._private.accelerators.nvidia_gpu import CUDA_VISIBLE_DEVICES_ENV_VAR
 
 logger = logging.getLogger(__name__)
 
-HIP_VISIBLE_DEVICES_ENV_VAR = "HIP_VISIBLE_DEVICES"
-NOSET_HIP_VISIBLE_DEVICES_ENV_VAR = "RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES"
+ROCR_VISIBLE_DEVICES_ENV_VAR = "ROCR_VISIBLE_DEVICES"
+NOSET_ROCR_VISIBLE_DEVICES_ENV_VAR = "RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES"
 
 amd_product_dict = {
     "0x66a1": "AMD-Instinct-MI50",
@@ -39,24 +39,11 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
 
     @staticmethod
     def get_visible_accelerator_ids_env_var() -> str:
-        if (
-            HIP_VISIBLE_DEVICES_ENV_VAR not in os.environ
-            and "ROCR_VISIBLE_DEVICES" in os.environ
-        ):
-            raise RuntimeError(
-                f"Please use {HIP_VISIBLE_DEVICES_ENV_VAR} instead of ROCR_VISIBLE_DEVICES"
-            )
+        #TODO: may need to also check cuda visible devices
+        if(os.environ.get(ROCR_VISIBLE_DEVICES_ENV_VAR) == None && os.environ.get("HIP_VISIBLE_DEVICES") != None):
+            os.environ[ROCR_VISIBLE_DEVICES_ENV_VAR] = os.environ["HIP_VISIBLE_DEVICES"]
 
-        env_var = HIP_VISIBLE_DEVICES_ENV_VAR
-        if (cuda_val := os.environ.get(CUDA_VISIBLE_DEVICES_ENV_VAR, None)) is not None:
-            if (hip_val := os.environ.get(HIP_VISIBLE_DEVICES_ENV_VAR, None)) is None:
-                env_var = CUDA_VISIBLE_DEVICES_ENV_VAR
-            elif hip_val != cuda_val:
-                raise ValueError(
-                    f"Inconsistent values found. Please use either {HIP_VISIBLE_DEVICES_ENV_VAR} or {CUDA_VISIBLE_DEVICES_ENV_VAR}."
-                )
-
-        return env_var
+        return ROCR_VISIBLE_DEVICES_ENV_VAR
 
     @staticmethod
     def get_current_process_visible_accelerator_ids() -> Optional[List[str]]:
@@ -77,20 +64,28 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
 
     @staticmethod
     def get_current_node_num_accelerators() -> int:
-        import ray._private.thirdparty.pyamdsmi as pyamdsmi
+        import amdsmi
 
         num_gpus = 0
 
         try:
-            pyamdsmi.smi_initialize()
-            num_gpus = pyamdsmi.smi_get_device_count()
-        except Exception:
-            pass
+            amdsmi.amdsmi_init()
+        except amdsmi.AmdSmiLibraryException as e:
+            #TODO: see if this message can be logged:
+            #print(f"Failed to initialize AMD SMI library: {e}")
+            return 0
+
+        try:
+            devices = amdsmi.amdsmi_get_processor_handles()
+            num_gpus = len(devices)
+
+        except amdsmi.AmdSmiException as e:
+            #TODO: see if this message can be logged:
+            #print(f"An error occurred while getting device handles: {e}")
+            return 0
+
         finally:
-            try:
-                pyamdsmi.smi_shutdown()
-            except Exception:
-                pass
+            amdsmi.amdsmi_shut_down()
 
         return num_gpus
 
@@ -124,7 +119,7 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
     def set_current_process_visible_accelerator_ids(
         visible_amd_devices: List[str],
     ) -> None:
-        if os.environ.get(NOSET_HIP_VISIBLE_DEVICES_ENV_VAR):
+        if os.environ.get(NOSET_ROCR_VISIBLE_DEVICES_ENV_VAR):
             return
 
         os.environ[
