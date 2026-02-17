@@ -10,25 +10,6 @@ logger = logging.getLogger(__name__)
 ROCR_VISIBLE_DEVICES_ENV_VAR = "ROCR_VISIBLE_DEVICES"
 NOSET_ROCR_VISIBLE_DEVICES_ENV_VAR = "RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES"
 
-amd_product_dict = {
-    "0x66a1": "AMD-Instinct-MI50",
-    "0x738c": "AMD-Instinct-MI100",
-    "0x7408": "AMD-Instinct-MI250X",
-    "0x740c": "AMD-Instinct-MI250X-MI250",
-    "0x740f": "AMD-Instinct-MI210",
-    "0x74a0": "AMD-Instinct-MI300A",
-    "0x74a1": "AMD-Instinct-MI300X-OAM",
-    "0x74a2": "AMD-Instinct-MI308X-OAM",
-    "0x74a9": "AMD-Instinct-MI300X-HF",
-    "0x74a5": "AMD-Instinct-MI325X-OAM",
-    "0x75a0": "AMD-Instinct-MI350X-OAM",
-    "0x75a3": "AMD-Instinct-MI355X-OAM",
-    "0x6798": "AMD-Radeon-R9-200-HD-7900",
-    "0x6799": "AMD-Radeon-HD-7900",
-    "0x679A": "AMD-Radeon-HD-7900",
-    "0x679B": "AMD-Radeon-HD-7900",
-}
-
 
 class AMDGPUAcceleratorManager(AcceleratorManager):
     """AMD GPU accelerators."""
@@ -91,23 +72,37 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
 
     @staticmethod
     def get_current_node_accelerator_type() -> Optional[str]:
+        import amdsmi
+
+        market_name = None
         try:
-            device_ids = AMDGPUAcceleratorManager._get_amd_device_ids()
-            if device_ids is None:
-                return None
-            return AMDGPUAcceleratorManager._gpu_name_to_accelerator_type(device_ids[0])
-        except Exception:
+            amdsmi.amdsmi_init()
+        except amdsmi.AmdSmiLibraryException as e:
+            #TODO: see if this message can be logged:
+            #print(f"Failed to initialize AMD SMI library: {e}")
             return None
 
-    @staticmethod
-    def _gpu_name_to_accelerator_type(name):
-        if name is None:
-            return None
         try:
-            match = amd_product_dict[name]
-            return match
-        except Exception:
+            devices = amdsmi.amdsmi_get_processor_handles()
+            num_gpus = len(devices)
+
+        except amdsmi.AmdSmiException as e:
+            #TODO: see if this message can be logged:
+            #print(f"An error occurred while getting device handles: {e}")
             return None
+
+        try:
+            asic_info = amdsmi.amdsmi_get_gpu_asic_info(devices[0])
+            market_name = asic_info['market_name']
+        except amdsmi.AmdSmiException as e:
+            #TODO: log e
+            return None
+
+        finally:
+            amdsmi.amdsmi_shut_down()
+        
+        return market_name
+
 
     @staticmethod
     def validate_resource_request_quantity(
@@ -126,32 +121,3 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
             AMDGPUAcceleratorManager.get_visible_accelerator_ids_env_var()
         ] = ",".join([str(i) for i in visible_amd_devices])
 
-    @staticmethod
-    def _get_amd_device_ids() -> List[str]:
-        """Get the list of GPUs IDs
-        Example:
-            On a node with 2x MI210 GPUs
-            pyamdsmi library python bindings
-            return: ['0x740f', '0x740f']
-        Returns:
-            A list of strings containing GPU IDs
-        """
-        import ray._private.thirdparty.pyamdsmi as pyamdsmi
-
-        device_ids = []
-        try:
-            pyamdsmi.smi_initialize()
-            num_devices = pyamdsmi.smi_get_device_count()
-            for i in range(num_devices):
-                did = pyamdsmi.smi_get_device_id(i)
-                if did >= 0:
-                    device_ids.append(hex(did))
-        except Exception:
-            return None
-        finally:
-            try:
-                pyamdsmi.pyamdsmi_shutdown()
-            except Exception:
-                pass
-
-        return device_ids
