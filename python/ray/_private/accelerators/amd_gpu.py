@@ -75,6 +75,7 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
         import amdsmi
 
         market_name = None
+        devices = None
         try:
             amdsmi.amdsmi_init()
         except amdsmi.AmdSmiLibraryException as e:
@@ -84,7 +85,6 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
 
         try:
             devices = amdsmi.amdsmi_get_processor_handles()
-            num_gpus = len(devices)
 
         except amdsmi.AmdSmiException as e:
             #TODO: see if this message can be logged:
@@ -92,8 +92,9 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
             return None
 
         try:
-            asic_info = amdsmi.amdsmi_get_gpu_asic_info(devices[0])
-            market_name = asic_info['market_name']
+            if(len(devices) > 0):
+                asic_info = amdsmi.amdsmi_get_gpu_asic_info(devices[0])
+                market_name = asic_info['market_name']
         except amdsmi.AmdSmiException as e:
             #TODO: log e
             return None
