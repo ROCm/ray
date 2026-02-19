@@ -21,7 +21,7 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
     @staticmethod
     def get_visible_accelerator_ids_env_var() -> str:
         #TODO: may need to also check cuda visible devices
-        if(os.environ.get(ROCR_VISIBLE_DEVICES_ENV_VAR) == None && os.environ.get("HIP_VISIBLE_DEVICES") != None):
+        if(os.environ.get(ROCR_VISIBLE_DEVICES_ENV_VAR) == None and os.environ.get("HIP_VISIBLE_DEVICES") != None):
             os.environ[ROCR_VISIBLE_DEVICES_ENV_VAR] = os.environ["HIP_VISIBLE_DEVICES"]
 
         return ROCR_VISIBLE_DEVICES_ENV_VAR
