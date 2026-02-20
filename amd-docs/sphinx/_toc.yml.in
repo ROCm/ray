@@ -1,0 +1,36 @@
+defaults:
+  numbered: False
+  maxdepth: 6
+root: index
+subtrees:
+- entries:
+  - file: what-is-ray.rst
+    title: What is Ray?
+
+- caption: Install
+  entries:
+  - file: install/ray-install.rst
+    title: Install Ray
+
+- caption: Examples
+  entries:
+  - url: https://docs.ray.io/en/latest/ray-overview/examples/index.html
+    title: Ray examples (upstream)
+  - url: https://docs.ray.io/en/latest/ray-overview/use-cases.html
+    title: Ray use cases (upstream)
+
+- caption: Reference
+  entries:
+  - url: https://docs.ray.io/en/latest/ray-overview/getting-started.html
+    title: Get started with Ray (upstream)
+  - url: https://docs.ray.io/en/latest/ray-core/api/index.html
+    title: Ray Core API (upstream)
+
+- caption: About
+  entries:
+  - url: https://rocm.blogs.amd.com/artificial-intelligence/rocm-ray/README.html
+    title: ROCm Ray blog
+  - url: https://rocm.docs.amd.com/en/latest/contribute/contributing.html
+    title: Contribute to Ray
+  - file: about/license.rst
+    title: License
