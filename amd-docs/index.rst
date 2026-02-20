@@ -21,16 +21,16 @@ The Ray public repository is located at `https://github.com/ROCm/ray <https://gi
 .. grid:: 2
   :gutter: 3
 
-   .. grid-item-card:: Install
+  .. grid-item-card:: Install
 
-      * :doc:`Install Ray <install/ray-install>`
+    * :doc:`Install Ray <install/ray-install>`
 
-   .. grid-item-card:: Examples
+  .. grid-item-card:: Examples
 
       * `Ray examples (upstream) <https://docs.ray.io/en/latest/ray-overview/examples/index.html>`__
       * `Ray use cases (upstream) <https://docs.ray.io/en/latest/ray-overview/use-cases.html>`__
 
-   .. grid-item-card:: Reference
+  .. grid-item-card:: Reference
 
       * `Get started with Ray (upstream) <https://docs.ray.io/en/latest/ray-overview/getting-started.html>`__
       * `Ray Core API (upstream) <https://docs.ray.io/en/latest/ray-core/api/index.html>`__
