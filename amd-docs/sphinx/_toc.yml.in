@@ -30,7 +30,7 @@ subtrees:
   entries:
   - url: https://rocm.blogs.amd.com/artificial-intelligence/rocm-ray/README.html
     title: ROCm Ray blog
-  - url: https://rocm.docs.amd.com/en/latest/contribute/contributing.html
+  - url: https://github.com/ROCm/ray/blob/amd-integration/CONTRIBUTING.rst
     title: Contribute to Ray
   - file: about/license.rst
     title: License

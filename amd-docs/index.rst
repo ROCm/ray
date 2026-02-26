@@ -5,16 +5,20 @@
 .. _ray-documentation-index:
 
 ********************************************************************
-ray documentation
+Ray on ROCm documentation
 ********************************************************************
 
+Use Ray on ROCm to orchestrate distributed GPU workloads across AMD Instinct
+clusters, enabling elastic hyperparameter tuning, reinforcement learning,
+and scalable end-to-end machine learning pipelines.
+
 Ray is a unified framework, consisting of `a core distributed 
-runtime  <https://docs.ray.io/en/latest/ray-core/walkthrough.html>`_ and a set of 
-`AI libraries <https://docs.ray.io/en/latest/ray-air/getting-started.html>`_ for 
+runtime  <https://docs.ray.io/en/latest/ray-core/walkthrough.html>`__ and a set of 
+`AI libraries <https://docs.ray.io/en/latest/ray-air/getting-started.html>`__ for 
 simplifying machine learning computations.
 
 Ray is part of the `ROCm-LLMExt toolkit
-<https://rocm.docs.amd.com/projects/rocm-llmext/en/latest/>`__.
+<https://rocm.docs.amd.com/projects/rocm-llmext/en/docs-25.08/>`__.
 
 The Ray public repository is located at `https://github.com/ROCm/ray <https://github.com/ROCm/ray>`__.
 
