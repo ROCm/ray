@@ -20,27 +20,57 @@ Any Python application can be scaled with Ray, without extra infrastructure.
 Features and use cases
 ====================================================================
 
-* The `Reinforcement Learning from Human Feedback on AMD GPUs with Ray and ROCm 
-  Integration <https://rocm.blogs.amd.com/artificial-intelligence/Ray-large-scale/README.html>`__  
-  blog provides an overview of Volcano Engine Reinforcement Learning (Ray) 
-  for large language models (LLMs) and discusses its benefits in large-scale 
-  reinforcement learning from human feedback (RLHF). It uses Ray as part of a 
-  hybrid orchestration engine to schedule and coordinate training and inference 
-  tasks in parallel, enabling optimized resource utilization and potential oRayap 
-  between these phases. This dynamic resource allocation strategy significantly 
-  improves overall system efficiency. The blog presents Ray’s performance results, 
-  focusing on throughput and convergence accuracy achieved on AMD Instinct™ MI300X 
-  GPUs. Follow this guide to get started with Ray on AMD Instinct GPUs and 
-  accelerate your RLHF training with ROCm-optimized performance.
+Ray provides the following key features:
 
-* The `Exploring Use Cases for Scalable AI: Implementing Ray with ROCm Support for Efficient ML Workflows 
-  <https://rocm.blogs.amd.com/artificial-intelligence/rocm-ray/README.html>`__
-  blog post describes key use cases such as training and inference for large language models (LLMs), 
-  model serving, hyperparameter tuning, reinforcement learning, and the orchestration of large-scale 
-  workloads using Ray in the ROCm environment.
+- **Unified Distributed Runtime:** Offers actor/task APIs with resource-aware
+  scheduling for GPUs and CPUs, enabling elastic, fault-tolerant workloads
+  on ROCm-enabled clusters.
+
+- **AI Libraries:** Includes Ray Train for distributed training, Ray Tune
+  for hyperparameter optimization, Ray RLlib for reinforcement learning,
+  and Ray Serve for scalable model serving.
+
+- **Cluster Orchestration:** Integrates with Kubernetes and on-prem schedulers
+  for autoscaling, placement groups, and isolation across multi-tenant clusters.
+
+- **Data and Streaming:** Provides Ray Data and streaming primitives for
+  efficient input pipelines, batch processing, and online inference.
+
+- **Observability and Reliability:** Built-in metrics, logging, dashboards,
+  and autoscaling policies to monitor and recover long-running jobs.
+
+Ray is commonly used in the following scenarios:
+
+- **Distributed Training:** Scale PyTorch and other ML workloads across
+  AMD Instinct GPUs with minimal code changes.
+
+- **Hyperparameter Tuning:** Run large HPO sweeps with efficient trial
+  scheduling and early stopping.
+
+- **Reinforcement Learning:** Train RL agents at scale using RLlib with
+  flexible environment integration.
+
+- **Model Serving Pipelines:** Deploy low-latency inference services and
+  batch scoring jobs with Ray Serve.
 
 For more use cases and recommendations, see the AMD GPU tabs in the `Accelerator Support 
 topic <https://docs.ray.io/en/latest/ray-core/scheduling/accelerators.html#accelerator-support>`__ 
 of the Ray core documentation and refer to the `AMD ROCm blog <https://rocm.blogs.amd.com/>`__, 
 where you can search for Ray examples and best practices to optimize your workloads on AMD GPUs.
 
+Why Ray?
+====================================================================
+
+Ray is well suited for end-to-end ML systems for the following reasons:
+
+- Its **simple programming model** abstracts away distributed systems
+  complexity while exposing fine-grained resource control.
+
+- **Rich library ecosystem** accelerates common ML tasks from training
+  to tuning and serving.
+
+- **Production-grade orchestration** with autoscaling, fault tolerance,
+  and observability supports enterprise deployments.
+
+- **Seamless GPU integration** allows efficient scheduling and utilization
+  of ROCm-powered AMD Instinct clusters.
