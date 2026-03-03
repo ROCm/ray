@@ -13,7 +13,7 @@ System requirements
 
 To use Ray `2.51.1 <https://github.com/ROCm/ray/tree/release/2.51.1>`__, you need the following prerequisites:
 
-- **ROCm version:** `7.0.0 <https://repo.radeon.com/rocm/apt/7.0/>`__
+- **ROCm version:** `7.0.0 <https://rocm.docs.amd.com/en/docs-7.0.0/>`__
 - **Operating system:** Ubuntu 22.04
 - **GPU platform:** AMD Instinct™ MI300X
 - **PyTorch:** 2.9.0a0+git1c57644
