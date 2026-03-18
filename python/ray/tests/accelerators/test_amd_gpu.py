@@ -94,9 +94,11 @@ def test_hip_cuda_env_var_get_current_process_visible_accelerator_ids(monkeypatc
 
     # HIP and CUDA visible env vars are set and not equal
     monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "0,1,3")
-    with pytest.raises(ValueError):
-        AMDGPUAcceleratorManager.get_current_process_visible_accelerator_ids()
-
+    assert AMDGPUAcceleratorManager.get_current_process_visible_accelerator_ids() == [
+        "0",
+        "1",
+        "2",
+    ]
 
 def test_set_current_process_visible_accelerator_ids():
     AMDGPUAcceleratorManager.set_current_process_visible_accelerator_ids(["0"])

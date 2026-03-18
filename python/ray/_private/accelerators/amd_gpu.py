@@ -40,6 +40,7 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
 
     @staticmethod
     def get_visible_accelerator_ids_env_var() -> str:
+        env_var = HIP_VISIBLE_DEVICES_ENV_VAR
         if (
             HIP_VISIBLE_DEVICES_ENV_VAR not in os.environ
             and "ROCR_VISIBLE_DEVICES" in os.environ
@@ -47,15 +48,11 @@ class AMDGPUAcceleratorManager(AcceleratorManager):
             raise RuntimeError(
                 f"Please use {HIP_VISIBLE_DEVICES_ENV_VAR} instead of ROCR_VISIBLE_DEVICES"
             )
-
-        env_var = HIP_VISIBLE_DEVICES_ENV_VAR
-        if (cuda_val := os.environ.get(CUDA_VISIBLE_DEVICES_ENV_VAR, None)) is not None:
-            if (hip_val := os.environ.get(HIP_VISIBLE_DEVICES_ENV_VAR, None)) is None:
-                env_var = CUDA_VISIBLE_DEVICES_ENV_VAR
-            elif hip_val != cuda_val:
-                raise ValueError(
-                    f"Inconsistent values found. Please use either {HIP_VISIBLE_DEVICES_ENV_VAR} or {CUDA_VISIBLE_DEVICES_ENV_VAR}."
-                )
+        elif (
+            HIP_VISIBLE_DEVICES_ENV_VAR not in os.environ 
+            and "CUDA_VISIBLE_DEVICES" in os.environ
+        ):
+            env_var = "CUDA_VISIBLE_DEVICES"
 
         return env_var
 
