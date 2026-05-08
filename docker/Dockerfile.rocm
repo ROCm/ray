@@ -1,0 +1,13 @@
+ARG BASE_IMAGE=rocm/vllm-dev:rocm7.2.1_v0.18.0_20260330
+FROM ${BASE_IMAGE}
+
+ARG RAY_WHEEL_PATH="==2.55.1"
+
+# Switch to bash shell for all RUN commands
+SHELL ["/bin/bash", "-c"]
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential python3-dev amd-smi-lib && rm -rf /var/lib/apt/lists/*
+
+#RUN pip install -U "${RAY_WHEEL_PATH}"
+RUN pip uninstall -y ray && pip install -U "ray[all]${RAY_WHEEL_PATH}"
