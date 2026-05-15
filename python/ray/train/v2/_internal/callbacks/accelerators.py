@@ -5,10 +5,15 @@ from typing import TYPE_CHECKING, Any, Dict, List
 
 import ray
 import ray._private.ray_constants as ray_constants
+from ray._private.accelerators.amd_gpu import HIP_VISIBLE_DEVICES_ENV_VAR
 from ray._private.accelerators.nvidia_gpu import CUDA_VISIBLE_DEVICES_ENV_VAR
 from ray._private.ray_constants import env_bool
 from ray.train import BackendConfig
-from ray.train.constants import ENABLE_SHARE_CUDA_VISIBLE_DEVICES_ENV
+from ray.train.constants import (
+    ENABLE_SHARE_CUDA_VISIBLE_DEVICES_ENV,
+    ENABLE_SHARE_HIP_VISIBLE_DEVICES_ENV,
+)
+from ray.train._internal.utils import should_mirror_hip_visible_devices_for_train
 from ray.train.v2._internal.execution.callback import WorkerGroupCallback
 from ray.train.v2._internal.execution.worker_group import ActorMetadata
 from ray.train.v2.api.config import ScalingConfig
@@ -22,8 +27,10 @@ logger = logging.getLogger(__name__)
 class AcceleratorSetupCallback(WorkerGroupCallback):
     """Perform accelerator setup for workers.
 
-    For example, this callback can be used to share CUDA_VISIBLE_DEVICES
-    among workers on the same node.
+    For example, this callback can be used to share CUDA_VISIBLE_DEVICES among
+    workers on the same node. When AMD GPUs (or a ROCm PyTorch build) are
+    detected on a worker, ``HIP_VISIBLE_DEVICES`` is set to the same ids if
+    ``TRAIN_ENABLE_SHARE_HIP_VISIBLE_DEVICES`` allows it.
     """
 
     def __init__(self, backend_config: BackendConfig, scaling_config: ScalingConfig):
@@ -53,7 +60,11 @@ class AcceleratorSetupCallback(WorkerGroupCallback):
 
 
 def _share_cuda_visible_devices(workers: List["Worker"]):
-    """Sets CUDA_VISIBLE_DEVICES on all workers.
+    """Sets CUDA_VISIBLE_DEVICES on all workers, and mirrors the same IDs to
+    HIP_VISIBLE_DEVICES when ``TRAIN_ENABLE_SHARE_HIP_VISIBLE_DEVICES`` is truthy
+    (default: enabled) and :func:`~ray.train._internal.utils.should_mirror_hip_visible_devices_for_train`
+    is true on that worker (AMD GPU resource mapping or ROCm PyTorch).
+
     For each worker, CUDA_VISIBLE_DEVICES will be set to the GPU IDs
     visible to all workers on that worker's node.
     This allows GPU workers on the same node to communicate with one
@@ -66,7 +77,7 @@ def _share_cuda_visible_devices(workers: List["Worker"]):
             - Worker2: {2, 3}
         - Node2:
             - Worker3: {0, 1}
-        CUDA_VISIBLE_DEVICES:
+        CUDA_VISIBLE_DEVICES (all GPU workers); HIP_VISIBLE_DEVICES only where ROCm/AMD applies:
         - Worker1: "0,1,2,3"
         - Worker2: "0,1,2,3"
         - Worker3: "0,1"
@@ -74,7 +85,27 @@ def _share_cuda_visible_devices(workers: List["Worker"]):
     Args:
         workers: List of worker objects.
     """
-    _share_accelerator_ids(workers, ray_constants.GPU, CUDA_VISIBLE_DEVICES_ENV_VAR)
+    worker_metadatas = [worker.metadata for worker in workers]
+    visible_accelerator_ids_per_worker = _get_visible_accelerator_ids_per_worker(
+        worker_metadatas=worker_metadatas, accelerator_name=ray_constants.GPU
+    )
+
+    def set_cuda_and_optional_hip_visible_devices(accelerator_ids: str):
+        os.environ[CUDA_VISIBLE_DEVICES_ENV_VAR] = accelerator_ids
+        if env_bool(
+            ENABLE_SHARE_HIP_VISIBLE_DEVICES_ENV, True
+        ) and should_mirror_hip_visible_devices_for_train():
+            os.environ[HIP_VISIBLE_DEVICES_ENV_VAR] = accelerator_ids
+
+    futures = []
+    for rank, visible_accelerator_ids in enumerate(visible_accelerator_ids_per_worker):
+        futures.append(
+            workers[rank].execute_async(
+                set_cuda_and_optional_hip_visible_devices,
+                accelerator_ids=visible_accelerator_ids,
+            )
+        )
+    ray.get(futures)
 
 
 def _share_accelerator_ids(

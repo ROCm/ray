@@ -98,9 +98,14 @@ def test_missing_accelerator():
         )
 
 
-def test_accelerator_setup_callback(mock_gpu_cluster, mock_runtime_context):
-    """The accelerator setup callback should set the CUDA_VISIBLE_DEVICES
-    on each worker properly."""
+def test_accelerator_setup_callback(mock_gpu_cluster, mock_runtime_context, monkeypatch):
+    """The accelerator setup callback should set CUDA_VISIBLE_DEVICES and mirror
+    HIP_VISIBLE_DEVICES on each worker when ROCm/AMD mirroring applies."""
+
+    monkeypatch.setattr(
+        "ray.train.v2._internal.callbacks.accelerators.should_mirror_hip_visible_devices_for_train",
+        lambda: True,
+    )
 
     class DummyBackendConfig(BackendConfig):
         def backend_cls(self):
@@ -135,6 +140,11 @@ def test_accelerator_setup_callback(mock_gpu_cluster, mock_runtime_context):
         lambda: os.environ["CUDA_VISIBLE_DEVICES"]
     )
     assert collections.Counter(visible_devices_per_worker) == {"0,1,2,3": 4, "0": 2}
+
+    hip_visible_per_worker = worker_group.execute(
+        lambda: os.environ["HIP_VISIBLE_DEVICES"]
+    )
+    assert hip_visible_per_worker == visible_devices_per_worker
 
 
 if __name__ == "__main__":

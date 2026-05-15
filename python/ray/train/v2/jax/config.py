@@ -5,11 +5,16 @@ from typing import Any, Dict, Optional
 
 import ray
 from ray._private import ray_constants
-from ray.train._internal.utils import get_address_and_port
+from ray._private.ray_constants import env_bool
+from ray.train._internal.utils import (
+    get_address_and_port,
+    should_mirror_hip_visible_devices_for_train,
+)
 from ray.train._internal.worker_group import WorkerGroup
 from ray.train.backend import Backend, BackendConfig
 from ray.train.constants import (
     DEFAULT_JAX_DISTRIBUTED_SHUTDOWN_TIMEOUT_S,
+    ENABLE_SHARE_HIP_VISIBLE_DEVICES_ENV,
     JAX_DISTRIBUTED_SHUTDOWN_TIMEOUT_S,
 )
 from ray.train.v2._internal.util import TrainingFramework
@@ -86,9 +91,12 @@ def _setup_jax_distributed_environment(
 
     if "cuda" in jax_platforms.split(","):
         num_gpus_per_worker = resources_per_worker.get("GPU", 0)
-        os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(
-            str(i) for i in range(num_gpus_per_worker)
-        )
+        cuda_visible = ",".join(str(i) for i in range(num_gpus_per_worker))
+        os.environ["CUDA_VISIBLE_DEVICES"] = cuda_visible
+        if env_bool(
+            ENABLE_SHARE_HIP_VISIBLE_DEVICES_ENV, True
+        ) and should_mirror_hip_visible_devices_for_train():
+            os.environ["HIP_VISIBLE_DEVICES"] = cuda_visible
 
     import jax
 

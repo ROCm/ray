@@ -221,3 +221,34 @@ class ActorWrapper:
         # actor.
         actor_method = getattr(self.actor, item)
         return lambda *args, **kwargs: ray.get(actor_method.remote(*args, **kwargs))
+
+
+def should_mirror_hip_visible_devices_for_train() -> bool:
+    """Whether Ray Train should set ``HIP_VISIBLE_DEVICES`` for GPU workers.
+
+    Returns True when this process maps the ``GPU`` resource to
+    :class:`~ray._private.accelerators.amd_gpu.AMDGPUAcceleratorManager`
+    (AMD GPUs detected on this node) or when PyTorch is a ROCm build
+    (``torch.version.hip`` is set).
+
+    Intended to be evaluated inside train worker processes so each node uses
+    its local accelerator detection.
+    """
+    from ray._private.accelerators import (
+        AMDGPUAcceleratorManager,
+        get_accelerator_manager_for_resource,
+    )
+    from ray._private import ray_constants as rc
+
+    if get_accelerator_manager_for_resource(rc.GPU) is AMDGPUAcceleratorManager:
+        return True
+
+    try:
+        import torch
+
+        if getattr(torch.version, "hip", None) is not None:
+            return True
+    except ImportError:
+        pass
+
+    return False

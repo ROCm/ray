@@ -81,8 +81,9 @@ ENABLE_DETAILED_AUTOFILLED_METRICS_ENV = (
 # Backend.share_cuda_visible_devices. 1 for True, 0 for False.
 ENABLE_SHARE_CUDA_VISIBLE_DEVICES_ENV = "TRAIN_ENABLE_SHARE_CUDA_VISIBLE_DEVICES"
 
-# Integer value which if set will not share HIP accelerator visible devices
-# across workers. 1 for True (default), 0 for False.
+# If truthy (default: enabled), Ray Train may set HIP_VISIBLE_DEVICES alongside
+# CUDA where ``should_mirror_hip_visible_devices_for_train()`` is true (AMD GPUs
+# per Ray's accelerator manager or ROCm PyTorch). Set to 0/false to skip HIP.
 ENABLE_SHARE_HIP_VISIBLE_DEVICES_ENV = "TRAIN_ENABLE_SHARE_HIP_VISIBLE_DEVICES"
 
 # Integer value which if set will not share neuron-core accelerator visible cores
@@ -140,6 +141,7 @@ DEFAULT_JAX_DISTRIBUTED_SHUTDOWN_TIMEOUT_S = 30
 TRAIN_ENV_VARS = {
     ENABLE_DETAILED_AUTOFILLED_METRICS_ENV,
     ENABLE_SHARE_CUDA_VISIBLE_DEVICES_ENV,
+    ENABLE_SHARE_HIP_VISIBLE_DEVICES_ENV,
     ENABLE_SHARE_NEURON_CORES_ACCELERATOR_ENV,
     TRAIN_PLACEMENT_GROUP_TIMEOUT_S_ENV,
     TRAIN_ENABLE_WORKER_SPREAD_ENV,

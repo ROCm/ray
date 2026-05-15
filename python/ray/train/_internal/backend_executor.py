@@ -33,7 +33,10 @@ from ray.train._internal.session import (
     shutdown_session,
 )
 from ray.train._internal.storage import StorageContext
-from ray.train._internal.utils import check_for_failure
+from ray.train._internal.utils import (
+    check_for_failure,
+    should_mirror_hip_visible_devices_for_train,
+)
 from ray.train._internal.worker_group import WorkerGroup
 from ray.train.backend import BackendConfig
 from ray.train.constants import (
@@ -220,9 +223,16 @@ class BackendExecutor:
                     resource_config.resource_name,
                     resource_config.resource_enable_sharing_env_var,
                 ):
+                    hip_predicate = (
+                        should_mirror_hip_visible_devices_for_train
+                        if resource_config.share_resource_ids_env_var
+                        == HIP_VISIBLE_DEVICES_ENV_VAR
+                        else None
+                    )
                     self._share_resource_ids(
                         resource_config.resource_name,
                         resource_config.share_resource_ids_env_var,
+                        should_set_on_worker=hip_predicate,
                     )
             self._backend.on_start(self.worker_group, self._backend_config)
         except RayActorError as exc:
@@ -301,6 +311,11 @@ class BackendExecutor:
         This allows GPU workers on the same node to communicate with one
         another.
 
+        When ``TRAIN_ENABLE_SHARE_HIP_VISIBLE_DEVICES`` is truthy (default),
+        ``HIP_VISIBLE_DEVICES`` is set to the same comma-separated ids only on
+        workers where ``should_mirror_hip_visible_devices_for_train()`` is true
+        (AMD GPU mapping via Ray or ROCm PyTorch).
+
         Example:
 
             Setup:
@@ -310,15 +325,52 @@ class BackendExecutor:
             - Node2:
                 - Worker3: {0, 1}
 
-            CUDA_VISIBLE_DEVICES:
+            CUDA_VISIBLE_DEVICES on all GPU workers; HIP only where ROCm/AMD applies:
             - Worker1: "0,1,2,3"
             - Worker2: "0,1,2,3"
             - Worker3: "0,1"
 
         """
-        self._share_resource_ids(ray_constants.GPU, CUDA_VISIBLE_DEVICES_ENV_VAR)
+        node_ids_and_resource_ids = [
+            (
+                w.metadata.node_id,
+                w.metadata.resource_ids[ray_constants.GPU],
+            )
+            for w in self.worker_group.workers
+        ]
+        node_id_to_worker_id = defaultdict(set)
+        node_id_to_resource_ids = defaultdict(set)
 
-    def _share_resource_ids(self, resource: str, env_var: str):
+        for worker_id, (node_id, resource_ids) in enumerate(node_ids_and_resource_ids):
+            node_id_to_worker_id[node_id].add(worker_id)
+            node_id_to_resource_ids[node_id].update(resource_ids)
+
+        futures = []
+        for node_id, resource_ids in node_id_to_resource_ids.items():
+            resource_ids = sorted(resource_ids)
+            all_resource_ids = ",".join(resource_ids)
+
+            def set_cuda_and_optional_hip(ids=all_resource_ids):
+                os.environ[CUDA_VISIBLE_DEVICES_ENV_VAR] = ids
+                if ray_constants.env_bool(
+                    ENABLE_SHARE_HIP_VISIBLE_DEVICES_ENV, True
+                ) and should_mirror_hip_visible_devices_for_train():
+                    os.environ[HIP_VISIBLE_DEVICES_ENV_VAR] = ids
+
+            for worker_id in node_id_to_worker_id[node_id]:
+                futures.append(
+                    self.worker_group.execute_single_async(
+                        worker_id, set_cuda_and_optional_hip
+                    )
+                )
+        ray.get(futures)
+
+    def _share_resource_ids(
+        self,
+        resource: str,
+        env_var: str,
+        should_set_on_worker: Optional[Callable[[], bool]] = None,
+    ):
         """Sets the given env_var on all workers.
 
         For each worker, the cores/devices are visible to all the
@@ -342,6 +394,8 @@ class BackendExecutor:
         Args:
             resource: The name of the resource/accelerator.
             env_var: The name of the environment variable to set.
+            should_set_on_worker: If given, env_var is only set when this callable
+                returns True (evaluated on each worker). Used for HIP visibility.
         """
         node_ids_and_resource_ids = [
             (
@@ -362,8 +416,10 @@ class BackendExecutor:
             resource_ids = sorted(resource_ids)
             all_resource_ids = ",".join(resource_ids)
 
-            def set_resource_ids():
-                os.environ[env_var] = all_resource_ids
+            def set_resource_ids(ids=all_resource_ids):
+                if should_set_on_worker is not None and not should_set_on_worker():
+                    return
+                os.environ[env_var] = ids
 
             for worker_id in node_id_to_worker_id[node_id]:
                 futures.append(
