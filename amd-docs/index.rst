@@ -40,6 +40,6 @@ The Ray public repository is located at `https://github.com/ROCm/ray <https://gi
       * `Ray Core API (upstream) <https://docs.ray.io/en/latest/ray-core/api/index.html>`__
 
 To contribute to the documentation, refer to
-`Contributing to ROCm <https://rocm.docs.amd.com/en/latest/contribute/contributing.html>`_.
+`Contributing to Ray <https://github.com/ROCm/ray/blob/master/CONTRIBUTING.rst>`__.
 
 You can find licensing information on the :doc:`Licensing <about/license>` page.
