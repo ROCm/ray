@@ -13,11 +13,11 @@ System requirements
 
 To use Ray `2.55.1 <https://github.com/ROCm/ray/tree/release/2.55.1>`__, you need the following prerequisites:
 
-- **ROCm version:** `7.0.0 <https://rocm.docs.amd.com/en/docs-7.0.0/>`__
+- **ROCm version:** `7.2.1 <https://rocm.docs.amd.com/en/docs-7.2.1/>`__
 - **Operating system:** Ubuntu 22.04
-- **GPU platform:** AMD Instinct™ MI300X
-- **PyTorch:** 2.9.0a0+git1c57644
-- **Python:** `3.12 <https://www.python.org/downloads/release/python-31212/>`__
+- **GPU platform:** AMD Instinct™ MI300X, MI325X, MI355X
+- **PyTorch:** 2.10.0+git8514f05
+- **Python:** `3.12.13 <https://www.python.org/downloads/release/python-31213/>`__
 
 Install Ray
 ================================================================================
@@ -43,7 +43,7 @@ Prebuilt Docker images with Ray configured for ROCm are available on `Docker Hub
 
    .. code-block:: bash
 
-      docker pull rocm/ray:ray-2.51.1_rocm7.0.0_ubuntu22.04_py3.12_pytorch2.9.0
+      docker pull rocm/ray:ray-2.55.1_rocm7.2.1_ubuntu22.04_py3.12_vllm0.18
 
 2. Launch and connect to the Docker container:
 
@@ -51,7 +51,7 @@ Prebuilt Docker images with Ray configured for ROCm are available on `Docker Hub
 
       docker run -it -d --network=host --device=/dev/kfd --device=/dev/dri --ipc=host --shm-size 64G \
       --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v $(pwd):/host_dir \
-      -w /app --name rocm_ray rocm/ray:ray-2.51.1_rocm7.0.0_ubuntu22.04_py3.12_pytorch2.9.0 /bin/bash
+      -w /app --name rocm_ray rocm/ray:ray-2.55.1_rocm7.2.1_ubuntu22.04_py3.12_vllm0.18 /bin/bash
 
       docker attach rocm_ray
 
@@ -69,7 +69,7 @@ Build your own Docker image
 
    .. code-block:: bash
 
-      git clone https://github.com/ROCm/ray.git -b release/2.51.1 
+      git clone https://github.com/ROCm/ray.git -b release/2.55.1
 
 2. Build the Docker container using the Dockerfile in the ``ray/docker`` directory:
 
@@ -102,7 +102,7 @@ Build your own Docker image
    .. code-block::
 
       memray==1.19.1
-      ray==2.51.1
+      ray==2.55.1
 
 .. _install-rocm-ray-bare-metal:
 
@@ -124,7 +124,7 @@ Follow these steps if you prefer to install ROCm manually on your host system or
    .. code-block:: bash
 
       +------------------------------------------------------------------------------+
-      | AMD-SMI 26.0.0+37d158ab      amdgpu version: 6.14.14  ROCm version: 7.0.0    |
+      | AMD-SMI 26.0.0+37d158ab      amdgpu version: 6.14.14  ROCm version: 7.2.1    |
       | Platform: Linux Baremetal                                                    |
       |-------------------------------------+----------------------------------------|
       | BDF                        GPU-Name | Mem-Uti   Temp   UEC       Power-Usage |
@@ -165,7 +165,7 @@ Follow these steps if you prefer to install ROCm manually on your host system or
 
    .. code-block:: bash
 
-      pip install -U ray[all]==2.51.1
+      pip install -U ray[all]==2.55.1
 
 3. Verify the installed Ray version:
 
@@ -178,7 +178,7 @@ Follow these steps if you prefer to install ROCm manually on your host system or
    .. code-block::
 
       memray==1.19.1
-      ray==2.51.1
+      ray==2.55.1
 
 .. _build-rocm-ray-from-source:
 
