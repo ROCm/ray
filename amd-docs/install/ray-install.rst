@@ -76,7 +76,7 @@ Build your own Docker image
    .. code-block:: bash
 
       cd ray
-      docker build --file docker/Dockerfile.rocm --tag rocm-ray-2.55.1 .
+      docker build -f docker/Dockerfile.rocm -t my-rocm-ray .
 
 3. Launch and connect to the container:
 
