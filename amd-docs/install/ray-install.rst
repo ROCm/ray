@@ -124,7 +124,7 @@ Follow these steps if you prefer to install ROCm manually on your host system or
    .. code-block:: bash
 
       +------------------------------------------------------------------------------+
-      | AMD-SMI 26.0.0+37d158ab      amdgpu version: 6.14.14  ROCm version: 7.0.0    |
+      | AMD-SMI 26.0.0+37d158ab      amdgpu version: 6.14.14  ROCm version: 7.2.1    |
       | Platform: Linux Baremetal                                                    |
       |-------------------------------------+----------------------------------------|
       | BDF                        GPU-Name | Mem-Uti   Temp   UEC       Power-Usage |
