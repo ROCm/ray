@@ -84,7 +84,7 @@ Build your own Docker image
 
       docker run --rm -it --device /dev/dri --device /dev/kfd -p 8265:8265 --group-add video \
       --cap-add SYS_PTRACE --security-opt seccomp=unconfined --privileged -v $HOME/.ssh:/root/.ssh \
-      -v $HOME:$HOME --shm-size 128G -w $PWD --name rocm_verl \
+      -v $HOME:$HOME --shm-size 128G -w $PWD --name my-rocm-ray \
       my-rocm-ray /bin/bash
 
    .. note::
@@ -101,7 +101,6 @@ Build your own Docker image
 
    .. code-block::
 
-      memray==1.19.1
       ray==2.55.1
 
 .. _install-rocm-ray-bare-metal:
@@ -177,7 +176,6 @@ Follow these steps if you prefer to install ROCm manually on your host system or
 
    .. code-block::
 
-      memray==1.19.1
       ray==2.55.1
 
 .. _build-rocm-ray-from-source:
