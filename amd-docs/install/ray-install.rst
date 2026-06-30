@@ -84,7 +84,7 @@ Build your own Docker image
 
       docker run --rm -it --device /dev/dri --device /dev/kfd -p 8265:8265 --group-add video \
       --cap-add SYS_PTRACE --security-opt seccomp=unconfined --privileged -v $HOME/.ssh:/root/.ssh \
-      -v $HOME:$HOME --shm-size 128G -w $PWD --name rocm-ray \
+      -v $HOME:$HOME --shm-size 128G -w $PWD --name my-rocm-ray \
       rocm-ray /bin/bash
 
    .. note::
