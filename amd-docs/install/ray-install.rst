@@ -76,7 +76,7 @@ Build your own Docker image
    .. code-block:: bash
 
       cd ray
-      docker build -f docker/Dockerfile.rocm -t my-rocm-ray .
+      docker build -f docker/Dockerfile.rocm -t rocm-ray .
 
 3. Launch and connect to the container:
 
@@ -84,8 +84,8 @@ Build your own Docker image
 
       docker run --rm -it --device /dev/dri --device /dev/kfd -p 8265:8265 --group-add video \
       --cap-add SYS_PTRACE --security-opt seccomp=unconfined --privileged -v $HOME/.ssh:/root/.ssh \
-      -v $HOME:$HOME --shm-size 128G -w $PWD --name my-rocm-ray \
-      my-rocm-ray /bin/bash
+      -v $HOME:$HOME --shm-size 128G -w $PWD --name rocm-ray \
+      rocm-ray /bin/bash
 
    .. note::
 
