@@ -47,7 +47,7 @@ release = version_number
 
 external_toc_path = "./sphinx/_toc.yml" # Defines Table of Content structure definition path
 
-# Add more addtional package accordingly
+# Add more additional packages accordingly
 extensions = [
     "rocm_docs", 
     "sphinx.ext.autodoc", # for Python docstrings
