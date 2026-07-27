@@ -17,10 +17,10 @@ runtime  <https://docs.ray.io/en/latest/ray-core/walkthrough.html>`__ and a set 
 `AI libraries <https://docs.ray.io/en/latest/ray-air/getting-started.html>`__ for 
 simplifying machine learning computations.
 
-Ray is part of the `ROCm-LLMExt toolkit
+Ray is part of the `AMD LLM Extension toolkit
 <https://rocm.docs.amd.com/projects/rocm-llmext/en/docs-26.02/>`__.
 
-The Ray public repository is located at `https://github.com/ROCm/ray <https://github.com/ROCm/ray>`__.
+The Ray public repository is located at `https://github.com/AMD-Ecosystem/ray <https://github.com/AMD-Ecosystem/ray>`__.
 
 .. grid:: 2
   :gutter: 3

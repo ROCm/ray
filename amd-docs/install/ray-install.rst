@@ -11,7 +11,7 @@ Ray on ROCm installation
 System requirements
 ====================================================================
 
-To use Ray `2.51.1 <https://github.com/ROCm/ray/tree/release/2.51.1>`__, you need the following prerequisites:
+To use Ray `2.51.1 <https://github.com/AMD-Ecosystem/ray/tree/release/2.51.1>`__, you need the following prerequisites:
 
 - **ROCm version:** `7.0.0 <https://rocm.docs.amd.com/en/docs-7.0.0/>`__
 - **Operating system:** Ubuntu 22.04
@@ -65,11 +65,11 @@ Prebuilt Docker images with Ray configured for ROCm are available on `Docker Hub
 Build your own Docker image
 --------------------------------------------------------------------------------------
 
-1. Clone the `https://github.com/ROCm/ray <https://github.com/ROCm/ray>`__ repository:
+1. Clone the `https://github.com/AMD-Ecosystem/ray <https://github.com/AMD-Ecosystem/ray>`__ repository:
 
    .. code-block:: bash
 
-      git clone https://github.com/ROCm/ray.git -b release/2.51.1 
+      git clone https://github.com/AMD-Ecosystem/ray.git -b release/2.51.1 
 
 2. Build the Docker container using the Dockerfile in the ``ray/docker`` directory:
 
