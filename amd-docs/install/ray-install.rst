@@ -44,7 +44,7 @@ Prebuilt Docker images with Ray configured for ROCm are available on `Docker Hub
 
    .. code-block:: bash
 
-      docker pull rocm/ray:ray-2.55.1_rocm7.2.1_ubuntu22.04_py3.12_vllm0.18
+      docker pull rocm/ray:ray-2.55.1_rocm7.2.1_ubuntu22.04_py3.12_vllm0.18.1
 
 2. Launch and connect to the Docker container:
 
