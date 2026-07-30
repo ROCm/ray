@@ -18,7 +18,7 @@ To use Ray `2.55.1 <https://github.com/AMD-Ecosystem/ray/tree/release/2.55.1>`__
 - **GPU platform:** AMD Instinct™ MI300X, MI325X, MI355X
 - **PyTorch:** 2.10.0+git8514f05
 - **Python:** `3.12 <https://www.python.org/downloads/release/python-31213/>`__
-- **vLLM:** `0.18.1 <https://github.com/vllm-project/vllm/releases/tag/v0.18.1>`__
+- **vLLM:** `0.18.0 <https://github.com/vllm-project/vllm/releases/tag/v0.18.0>`__
 
 Install Ray
 ================================================================================
@@ -44,7 +44,7 @@ Prebuilt Docker images with Ray configured for ROCm are available on `Docker Hub
 
    .. code-block:: bash
 
-      docker pull rocm/ray:ray-2.55.1_rocm7.2.1_ubuntu22.04_py3.12_vllm0.18.1
+      docker pull rocm/ray:ray-2.55.1_rocm7.2.1_ubuntu22.04_py3.12_vllm0.18
 
 2. Launch and connect to the Docker container:
 
