@@ -16,7 +16,7 @@ To use Ray `2.55.1 <https://github.com/AMD-Ecosystem/ray/tree/release/2.55.1>`__
 - **ROCm version:** `7.2.1 <https://rocm.docs.amd.com/en/docs-7.2.1/>`__
 - **Operating system:** Ubuntu 22.04
 - **GPU platform:** AMD Instinct™ MI300X, MI325X, MI355X
-- **PyTorch:** 2.10.0+git8514f05
+- **PyTorch:** `2.10.0 <https://github.com/ROCm/pytorch/tree/release/2.10>`__
 - **Python:** `3.12 <https://www.python.org/downloads/release/python-31213/>`__
 - **vLLM:** `0.18.0 <https://github.com/vllm-project/vllm/releases/tag/v0.18.0>`__
 
