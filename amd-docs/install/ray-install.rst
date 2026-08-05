@@ -50,9 +50,20 @@ Prebuilt Docker images with Ray configured for ROCm are available on `Docker Hub
 
    .. code-block:: bash
 
-      docker run -it -d --network=host --device=/dev/kfd --device=/dev/dri --ipc=host --shm-size 64G \
-      --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v $(pwd):/host_dir \
-      -w /app --name rocm_ray rocm/ray:ray-2.55.1_rocm7.2.1_ubuntu22.04_py3.12_vllm0.18.0 /bin/bash
+      docker run -it -d \
+         --network=host \
+         --device=/dev/kfd \
+         --device=/dev/dri \
+         --ipc=host \
+         --shm-size 64G \
+         --group-add video \
+         --cap-add=SYS_PTRACE \
+         --security-opt seccomp=unconfined \
+         -v $(pwd):/host_dir \
+         -w /app \
+         --name rocm_ray \
+         rocm/ray:ray-2.55.1_rocm7.2.1_ubuntu22.04_py3.12_vllm0.18.0 \
+         /bin/bash
 
       docker attach rocm_ray
 
@@ -83,10 +94,21 @@ Build your own Docker image
 
    .. code-block:: bash
 
-      docker run --rm -it --device /dev/dri --device /dev/kfd -p 8265:8265 --group-add video \
-      --cap-add SYS_PTRACE --security-opt seccomp=unconfined --privileged -v $HOME/.ssh:/root/.ssh \
-      -v $HOME:$HOME --shm-size 128G -w $PWD --name my-rocm-ray \
-      rocm-ray /bin/bash
+      docker run --rm -it \
+         --device /dev/dri \
+         --device /dev/kfd \
+         -p 8265:8265 \
+         --group-add video \
+         --cap-add SYS_PTRACE \
+         --security-opt seccomp=unconfined \
+         --privileged \
+         -v $HOME/.ssh:/root/.ssh \
+         -v $HOME:$HOME \
+         --shm-size 128G \
+         -w $PWD \
+         --name my-rocm-ray \
+         rocm-ray \
+         /bin/bash
 
    .. note::
 
