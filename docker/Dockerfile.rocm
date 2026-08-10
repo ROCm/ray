@@ -11,3 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 
 #RUN pip install -U "${RAY_WHEEL_PATH}"
 RUN pip uninstall -y ray && pip install -U "ray[all]${RAY_WHEEL_PATH}"
+
+# ray[all] pulls in cupy-cuda12x, which clobbers the base image's ROCm cupy
+# (they share the `cupy` namespace) and breaks cupy.cuda.nccl -> librccl.so.
+# Remove the CUDA wheel and repair the ROCm build so NCCL/RCCL collectives work.
+RUN pip uninstall -y cupy-cuda12x && \
+    pip install --force-reinstall --no-deps cupy-rocm-7-0==14.1.1
+
