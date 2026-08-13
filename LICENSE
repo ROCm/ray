@@ -387,9 +387,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
----------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 Code in python/ray/_private/thirdparty/tabulate/tabulate.py is adapted from 
-https://github.com/astanin/python-tabulate/blob/4892c6e9a79638c7897ccea68b602040da9cc7a7/tabulate.py
+https://github.com/astanin/python-tabulate/blob/
+4892c6e9a79638c7897ccea68b602040da9cc7a7/tabulate.py
 
 Copyright (c) 2011-2020 Sergey Astanin and contributors
 
