@@ -272,7 +272,9 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ------------------
-Code in python/ray/_private/prometheus_exporter.py is adapted from https://github.com/census-instrumentation/opencensus-python/blob/master/contrib/opencensus-ext-prometheus/opencensus/ext/prometheus/stats_exporter/__init__.py
+Code in python/ray/_private/prometheus_exporter.py is adapted from 
+https://github.com/census-instrumentation/opencensus-python/blob/master/contrib/
+opencensus-ext-prometheus/opencensus/ext/prometheus/stats_exporter/__init__.py
 
 # Copyright 2018, OpenCensus Authors
 #
@@ -361,7 +363,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 --------------------------------------------------------------------------------
-Code in python/ray/_private/runtime_env/_clonevirtualenv.py is adapted from https://github.com/edwardgeorge/virtualenv-clone/blob/master/clonevirtualenv.py
+Code in python/ray/_private/runtime_env/_clonevirtualenv.py is adapted from 
+https://github.com/edwardgeorge/virtualenv-clone/blob/master/clonevirtualenv.py
 
 Copyright (c) 2011, Edward George, based on code contained within the
 virtualenv project.
@@ -385,7 +388,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 ---------------------------------------------------------------------------------------------------------------
-Code in python/ray/_private/thirdparty/tabulate/tabulate.py is adapted from https://github.com/astanin/python-tabulate/blob/4892c6e9a79638c7897ccea68b602040da9cc7a7/tabulate.py
+Code in python/ray/_private/thirdparty/tabulate/tabulate.py is adapted from 
+https://github.com/astanin/python-tabulate/blob/4892c6e9a79638c7897ccea68b602040da9cc7a7/tabulate.py
 
 Copyright (c) 2011-2020 Sergey Astanin and contributors
 
@@ -409,7 +413,8 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 --------------------------------------------------------------------------------
-Code in python/ray/_private/thirdparty/dacite is adapted from https://github.com/konradhalas/dacite/blob/master/dacite
+Code in python/ray/_private/thirdparty/dacite is adapted from 
+https://github.com/konradhalas/dacite/blob/master/dacite
 
 Copyright (c) 2018 Konrad Hałas
 
@@ -433,7 +438,8 @@ SOFTWARE.
 
 --------------------------------------------------------------------------------
 
-Code in python/ray/autoscaler/_private/kuberay/utils.py is adapted from https://github.com/kubernetes-client/python/blob/master/kubernetes/utils/quantity.py
+Code in python/ray/autoscaler/_private/kuberay/utils.py is adapted from 
+https://github.com/kubernetes-client/python/blob/master/kubernetes/utils/quantity.py
 
 Copyright 2019 The Kubernetes Authors.
 
@@ -451,7 +457,8 @@ limitations under the License.
 
 --------------------------------------------------------------------------------
 
-Code in python/ray/_private/thirdparty/pynvml is adapted from https://pypi.org/project/nvidia-ml-py
+Code in python/ray/_private/thirdparty/pynvml is adapted from 
+https://pypi.org/project/nvidia-ml-py
 
 Copyright (c) 2011-2022, NVIDIA Corporation.
 All rights reserved.
@@ -483,7 +490,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
 
-Code in src/ray/thirdparty/setproctitle is adapted from https://github.com/dvarrazzo/py-setproctitle
+Code in src/ray/thirdparty/setproctitle is adapted from 
+https://github.com/dvarrazzo/py-setproctitle
 
 BSD 3-Clause License
 
