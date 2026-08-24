@@ -18,7 +18,7 @@ runtime  <https://docs.ray.io/en/latest/ray-core/walkthrough.html>`__ and a set 
 simplifying machine learning computations.
 
 Ray is part of the `AMD LLM Extension toolkit
-<https://rocm.docs.amd.com/projects/rocm-llmext/en/docs-26.02/>`__.
+<https://rocm.docs.amd.com/projects/rocm-llmext/en/docs-26.06/>`__.
 
 The Ray public repository is located at `https://github.com/AMD-Ecosystem/ray <https://github.com/AMD-Ecosystem/ray>`__.
 
