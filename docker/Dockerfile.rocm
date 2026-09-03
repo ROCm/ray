@@ -1,0 +1,61 @@
+ARG BASE_IMAGE=rocm/vllm:rocm10.0.0_ubuntu24.04_py3.14_pytorch_2.12.0_vllm_0.27.0
+
+FROM ${BASE_IMAGE}
+
+# The vLLM/ROCm base image sets RAY_EXPERIMENTAL_NOSET_{HIP,ROCR}_VISIBLE_DEVICES=1
+# so Ray does not rewrite GPU visibility under vLLM. That makes Ray skip writing
+# HIP_VISIBLE_DEVICES per worker and fails Ray Core GPU tests (e.g.
+# test_set_current_process_visible_accelerator_ids). Docker cannot delete
+# inherited ENV keys; clearing them to empty disables the flags (Ray's env_bool
+# treats only "1"/"true" as set).
+ENV RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES=
+ENV RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES=
+
+ARG RAY_VERSION=nightly # stable, nightly, version number, or a wheel path/URL
+
+RUN if [ "${RAY_VERSION}" = "nightly" ]; then \
+      PY_TAG="cp$(python -c 'import sys; print(f"{sys.version_info.major}{sys.version_info.minor}")')" && \
+      echo "Detected Python tag: ${PY_TAG}" && \
+      pip uninstall -y ray 2>/dev/null || true && \
+      pip install -U \
+        "ray[default,serve] @ https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-3.0.0.dev0-${PY_TAG}-${PY_TAG}-manylinux2014_x86_64.whl"; \
+    elif [ "${RAY_VERSION}" = "stable" ]; then \
+      pip uninstall -y ray 2>/dev/null || true && \
+      pip install -U "ray[default,serve]"; \
+    elif case "${RAY_VERSION}" in *.whl|*://*) true;; *) false;; esac; then \
+      pip uninstall -y ray 2>/dev/null || true && \
+      pip install -U "${RAY_VERSION}"; \
+    else \
+      pip uninstall -y ray 2>/dev/null || true && \
+      pip install -U "ray[default,serve]==${RAY_VERSION}"; \
+    fi
+
+
+# Ray's NCCL collective backend (ray.util.collective) is a wrapper over cupy's
+# cupy.cuda.nccl. On ROCm this maps to RCCL, but Ray only registers the "NCCL"
+# backend if `import cupy` succeeds -- otherwise it is silently skipped. The
+# base image may already ship a CUDA CuPy wheel (e.g. cupy-cuda12x); uninstall
+# that first so it cannot shadow the ROCm 7.x build. RCCL itself already ships
+# in the base image.
+RUN pip uninstall -y cupy cupy-cuda11x cupy-cuda12x cupy-cuda13x 2>/dev/null || true \
+    && pip install -U cupy-rocm-7-0
+
+# The base image ships a tensorizer build that crashes on import under Python
+# 3.14 with `KeyError: 'crypto_stream_salsa20_NONCEBYTES'`, because Python 3.14
+# evaluates annotations lazily and tensorizer's _crypt metaclass read
+# __annotations__ eagerly. This breaks vLLM's model_loader import chain (via the
+# quark_online_quant plugin), causing engine core init to fail for LLM serve
+# deployments. tensorizer >= 2.12.1 fixes Python 3.14 compatibility.
+RUN pip install -U "tensorizer>=2.12.1"
+
+# Switch to bash shell for all RUN commands
+SHELL ["/bin/bash", "-c"]
+
+# System dependencies. amd-smi-lib is only available from the ROCm apt repo,
+# which the TheRock/rocm-sdk-based base image does not configure (it already
+# ships amdsmi via rocm-sdk). Install it when available, but don't fail the
+# build when it isn't.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
